@@ -1,38 +1,24 @@
-import { Injectable, Inject } from '@nestjs/common';
-import databaseConfig from './config/database.config';
-import { ConfigType } from '@nestjs/config';
+import { Injectable } from '@nestjs/common';
 import { WordDto, VoteDto } from './app.model';
-import { repository } from './app.repository';
+import { Repository } from './app.repository';
 
 @Injectable()
 export class AppService {
-  constructor(
-    @Inject(databaseConfig.KEY)
-    private readonly config: ConfigType<typeof databaseConfig>,
-    private readonly repository,
-  ) {}
+  constructor(private readonly repository: Repository) {}
 
-  createWord(wordDto: WordDto): string {
+  createWord(wordDto: WordDto): Promise<boolean> {
     return this.repository.createWord(wordDto);
   }
 
-  likeWord(voteDto: VoteDto): string {
-    return this.repository.likeWord(voteDto);
+  voteWord(voteDto: VoteDto): Promise<boolean> {
+    return this.repository.voteWord(voteDto);
   }
 
-  dislikeWord(voteDto: VoteDto): string {
-    return this.appService.getHello();
+  removeVote(voteDto: VoteDto): Promise<boolean> {
+    return this.repository.removeVote(voteDto);
   }
 
-  removeLike(voteDto: VoteDto): string {
-    return this.appService.getHello();
-  }
-
-  removeDislike(voteDto: VoteDto): string {
-    return this.appService.getHello();
-  }
-
-  getWords(keyword: string, page: number): string {
-    return this.appService.getHello();
+  getWords(keyword: string, page: number): Promise<boolean> {
+    return this.repository.getWords(keyword, page);
   }
 }

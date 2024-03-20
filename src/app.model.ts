@@ -6,4 +6,5 @@ export interface WordDto {
 export interface VoteDto {
   word_id: number;
   ip: string;
+  vote: 'like' | 'dislike';
 }

@@ -5,7 +5,7 @@ import { ConfigType } from '@nestjs/config';
 import { VoteDto, WordDto } from './app.model';
 
 @Injectable()
-export class repository {
+export class Repository {
   pool: mysql.Pool;
   constructor(
     @Inject(databaseConfig.KEY)
@@ -26,10 +26,12 @@ export class repository {
       FROM words
       WHERE word=${word} AND meaning=$${meaning}`;
       const [rows] = await connection.query(counter);
-      const n = rows['n'];
+      const n = rows[0]['n'];
       if (n === 0) {
-        const insertQuery = `INSERT INTO words (word, meaning) VALUES (${word}, ${meaning})`;
-        const [result] = await connection.query(insertQuery);
+        const insertWord = `INSERT INTO words (word, meaning) VALUES (${word}, ${meaning})`;
+        const insertVote = `INSERT INTO vote (like_amount, dislike_amount) VALUES (0, 0)`;
+        const result = await connection.query(insertWord);
+        const result2 = await connection.query(insertVote);
         return true;
       }
     } catch (error) {
@@ -39,20 +41,44 @@ export class repository {
     }
   }
 
-  async likeWord(voteDto: VoteDto) {
-    const { ip, word_id } = voteDto;
+  async resetVote(
+    word_id: number,
+    ip: string,
+    connection: mysql.PoolConnection,
+  ) {
+    const [result] = await connection.query(
+      `SELECT word_id, isLike FROM ip WHERE ip=$${ip} AND word_id=${word_id}`,
+    );
+    if (result[0].length === 0) return;
+    const like = result['isLike'] ? 'like' : 'dislike';
+    await connection.query(
+      `DELETE FROM ip WHERE ip=$${ip} AND word_id=${word_id}`,
+    );
+    await connection.query(
+      `UPDATE vote SET ${like} = ${like} - 1 WHERE word_id=${word_id}`,
+    );
+    await this.setPriority(word_id, connection);
+    return true;
+  }
+
+  async setPriority(word_id: number, connection: mysql.PoolConnection) {
+    await connection.query(
+      `update vote set priority = like_amount - dislike_amount where word_id=${word_id}`,
+    );
+  }
+
+  async voteWord(voteDto: VoteDto) {
+    const { ip, word_id, vote } = voteDto;
     const connection = await this.pool.getConnection();
     try {
-      const findSql = `SELECT COUNT(*) AS n
-      FROM ip
-      WHERE word_id=${word_id} AND like_ip=${ip}`;
-      const [rows] = await connection.query(findSql);
-      if (rows['n'] === 0) {
-        const updateSql = `UPDATE vote SET like_amount = likeamount + 1 WHERE word_id = ${word_id}`;
-        const insertSql = `INSERT INTO ip (word_id, like_ip) VALUES (${word_id}, ${ip})`;
-        const updateResult = await connection.query(updateSql);
-        const insertResult = await connection.query(insertSql);
-      }
+      await this.resetVote(word_id, ip, connection);
+      const updateResult = await connection.query(
+        `UPDATE vote SET ${vote}_amount = ${vote}_amount + 1 WHERE word_id = ${word_id}`,
+      );
+      const insertResult = await connection.query(
+        `INSERT INTO ip (word_id, ${vote}_ip) VALUES (${word_id}, ${ip})`,
+      );
+      await this.setPriority(word_id, connection);
       return true;
     } catch (err) {
       return false;
@@ -60,4 +86,19 @@ export class repository {
       connection.release();
     }
   }
+
+  async removeVote(voteDto: VoteDto) {
+    const { ip, word_id } = voteDto;
+    const connection = await this.pool.getConnection();
+    try {
+      await this.resetVote(word_id, ip, connection);
+      return true;
+    } catch (err) {
+      return false;
+    } finally {
+      connection.release();
+    }
+  }
+
+  async getWords(keyword: string, page: number) {}
 }
