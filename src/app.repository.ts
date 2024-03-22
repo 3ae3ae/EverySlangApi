@@ -1,9 +1,8 @@
-import mysql from 'mysql2/promise';
+import * as mysql from 'mysql2/promise';
 import { Injectable, Inject } from '@nestjs/common';
 import databaseConfig from './config/database.config';
 import { ConfigType } from '@nestjs/config';
 import { VoteDto, WordDto } from './app.model';
-import { connect } from 'http2';
 
 @Injectable()
 export class Repository {
@@ -16,27 +15,32 @@ export class Repository {
       host: config.host,
       user: config.user,
       password: config.password,
+      database: config.database,
     });
   }
 
   async createWord(wordDto: WordDto) {
     const { word, meaning } = wordDto;
     const connection = await this.pool.getConnection();
+    console.log('createWord');
     try {
-      const counter = `SELECT COUNT(word_id) AS n
+      const [rows] = await connection.query(`SELECT COUNT(word_id) AS n
       FROM words
-      WHERE word=${word} AND meaning=$${meaning}`;
-      const [rows] = await connection.query(counter);
+      WHERE word='${word}' AND meaning='${meaning}'`);
       const n = rows[0]['n'];
       if (n === 0) {
-        const insertWord = `INSERT INTO words (word, meaning) VALUES (${word}, ${meaning})`;
-        const insertVote = `INSERT INTO vote (like_amount, dislike_amount) VALUES (0, 0)`;
-        const result = await connection.query(insertWord);
-        const result2 = await connection.query(insertVote);
-        return true;
+        const result = await connection.query(
+          `INSERT INTO words (word, meaning) VALUES ('${word}', '${meaning}')`,
+        );
+        const [id] = await connection.query(`SELECT LAST_INSERT_ID() as id`);
+        const result2 = await connection.query(
+          `INSERT INTO vote (like_amount, dislike_amount, word_id) VALUES (0, 0, ${id[0].id})`,
+        );
+        return 'OK';
       }
     } catch (error) {
-      return false;
+      console.log(error);
+      return 'fail';
     } finally {
       connection.release();
     }
@@ -48,23 +52,24 @@ export class Repository {
     connection: mysql.PoolConnection,
   ) {
     const [result] = await connection.query(
-      `SELECT word_id, isLike FROM ip WHERE ip=$${ip} AND word_id=${word_id}`,
+      `SELECT word_id, isLike FROM ip WHERE ip='${ip}' AND word_id='${word_id}'`,
     );
-    if (result[0].length === 0) return;
-    const like = result['isLike'] ? 'like' : 'dislike';
+    console.log(result);
+    if (JSON.parse(JSON.stringify(result)).length === 0) return;
+    const like = result['isLike'] === 1 ? 'like' : 'dislike';
     await connection.query(
-      `DELETE FROM ip WHERE ip=$${ip} AND word_id=${word_id}`,
+      `DELETE FROM ip WHERE ip='${ip}' AND word_id='${word_id}'`,
     );
     await connection.query(
-      `UPDATE vote SET ${like} = ${like} - 1 WHERE word_id=${word_id}`,
+      `UPDATE vote SET ${like}_amount = ${like}_amount - 1 WHERE word_id=${word_id}`,
     );
     await this.setPriority(word_id, connection);
-    return true;
+    return 'OK';
   }
 
   async setPriority(word_id: number, connection: mysql.PoolConnection) {
     await connection.query(
-      `update vote set priority = like_amount - dislike_amount where word_id=${word_id}`,
+      `update vote set priority = like_amount - dislike_amount where word_id='${word_id}'`,
     );
   }
 
@@ -74,15 +79,16 @@ export class Repository {
     try {
       await this.resetVote(word_id, ip, connection);
       const updateResult = await connection.query(
-        `UPDATE vote SET ${vote}_amount = ${vote}_amount + 1 WHERE word_id = ${word_id}`,
+        `UPDATE vote SET ${vote}_amount = ${vote}_amount + 1 WHERE word_id = '${word_id}'`,
       );
       const insertResult = await connection.query(
-        `INSERT INTO ip (word_id, ${vote}_ip) VALUES (${word_id}, ${ip})`,
+        `INSERT INTO ip (word_id, ip, isLike) VALUES (${word_id}, '${ip}', ${vote === 'like' ? 1 : 0})`,
       );
       await this.setPriority(word_id, connection);
-      return true;
+      return 'OK';
     } catch (err) {
-      return false;
+      console.log(err);
+      return 'fail';
     } finally {
       connection.release();
     }
@@ -93,9 +99,10 @@ export class Repository {
     const connection = await this.pool.getConnection();
     try {
       await this.resetVote(word_id, ip, connection);
-      return true;
+      return 'OK';
     } catch (err) {
-      return false;
+      console.log(err);
+      return 'fail';
     } finally {
       connection.release();
     }
@@ -113,7 +120,7 @@ export class Repository {
       ORDER BY CASE
       WHEN w.word LIKE '${keyword}' THEN 0
       WHEN w.word LIKE '${keyword}%' THEN 1
-      WHEN w.word LIKE '%${keyword}%' TEHN 2
+      WHEN w.word LIKE '%${keyword}%' THEN 2
       ELSE 3 END, v.priority DESC
       LIMIT ${wordPerPage * page}, ${wordPerPage}`);
       const [ret] = result;

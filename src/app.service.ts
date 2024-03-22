@@ -6,15 +6,15 @@ import { Repository } from './app.repository';
 export class AppService {
   constructor(private readonly repository: Repository) {}
 
-  createWord(wordDto: WordDto): Promise<boolean> {
+  createWord(wordDto: WordDto) {
     return this.repository.createWord(wordDto);
   }
 
-  voteWord(voteDto: VoteDto): Promise<boolean> {
+  voteWord(voteDto: VoteDto) {
     return this.repository.voteWord(voteDto);
   }
 
-  removeVote(voteDto: VoteDto): Promise<boolean> {
+  removeVote(voteDto: VoteDto) {
     return this.repository.removeVote(voteDto);
   }
 
