@@ -18,7 +18,7 @@ export class AppService {
     return this.repository.removeVote(voteDto);
   }
 
-  getWords(keyword: string, page: number): Promise<boolean> {
+  getWords(keyword: string, page: number): Promise<string> {
     return this.repository.getWords(keyword, page);
   }
 }

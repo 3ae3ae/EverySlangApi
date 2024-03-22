@@ -3,6 +3,7 @@ import { Injectable, Inject } from '@nestjs/common';
 import databaseConfig from './config/database.config';
 import { ConfigType } from '@nestjs/config';
 import { VoteDto, WordDto } from './app.model';
+import { connect } from 'http2';
 
 @Injectable()
 export class Repository {
@@ -100,5 +101,27 @@ export class Repository {
     }
   }
 
-  async getWords(keyword: string, page: number) {}
+  async getWords(keyword: string, page: number) {
+    const connection = await this.pool.getConnection();
+    try {
+      const wordPerPage = 10;
+      const result = await connection.query(`SELECT w.word, w.meaning
+      FROM words AS w
+      INNER JOIN vote AS v
+      ON w.word_id = v.word_id
+      WHERE w.word LIKE '%${keyword}%'
+      ORDER BY CASE
+      WHEN w.word LIKE '${keyword}' THEN 0
+      WHEN w.word LIKE '${keyword}%' THEN 1
+      WHEN w.word LIKE '%${keyword}%' TEHN 2
+      ELSE 3 END, v.priority DESC
+      LIMIT ${wordPerPage * page}, ${wordPerPage}`);
+      const [ret] = result;
+      return JSON.stringify(ret);
+    } catch (error) {
+      console.log(error);
+    } finally {
+      connection.release();
+    }
+  }
 }
