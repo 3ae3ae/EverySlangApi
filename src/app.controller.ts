@@ -1,4 +1,13 @@
-import { Controller, Get, Body, Query, Post, Put } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Body,
+  Query,
+  Post,
+  Put,
+  Header,
+  Req,
+} from '@nestjs/common';
 import { AppService } from './app.service';
 import { WordDto, VoteDto } from './app.model';
 
@@ -21,8 +30,13 @@ export class AppController {
     return this.appService.removeVote(voteDto);
   }
 
+  @Header('Access-Control-Allow-Origin', '*')
   @Get('/search')
-  getWords(@Query('keyword') keyword: string, @Query('page') page: number) {
-    return this.appService.getWords(keyword, page);
+  getWords(
+    @Query('keyword') keyword: string,
+    @Query('page') page: number,
+    @Req() req,
+  ) {
+    return this.appService.getWords(keyword, page, req);
   }
 }

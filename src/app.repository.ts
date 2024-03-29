@@ -22,7 +22,6 @@ export class Repository {
   async createWord(wordDto: WordDto) {
     const { word, meaning } = wordDto;
     const connection = await this.pool.getConnection();
-    console.log('createWord');
     try {
       const [rows] = await connection.query(`SELECT COUNT(word_id) AS n
       FROM words
@@ -108,21 +107,34 @@ export class Repository {
     }
   }
 
-  async getWords(keyword: string, page: number) {
+  async getWords(keyword: string, page: number, ip: string) {
     const connection = await this.pool.getConnection();
     try {
       const wordPerPage = 10;
-      const result = await connection.query(`SELECT w.word, w.meaning
-      FROM words AS w
-      INNER JOIN vote AS v
-      ON w.word_id = v.word_id
-      WHERE w.word LIKE '%${keyword}%'
-      ORDER BY CASE
-      WHEN w.word LIKE '${keyword}' THEN 0
-      WHEN w.word LIKE '${keyword}%' THEN 1
-      WHEN w.word LIKE '%${keyword}%' THEN 2
-      ELSE 3 END, v.priority DESC
-      LIMIT ${wordPerPage * page}, ${wordPerPage}`);
+      const result = await connection.query(`SELECT 
+    w.word, 
+    w.meaning,
+    v.like_amount,
+    v.dislike_amount,
+    COALESCE(i.isLike, -1) as isLike
+    FROM 
+        words AS w
+    INNER JOIN 
+        vote AS v ON w.word_id = v.word_id
+    LEFT JOIN 
+        ip AS i ON w.word_id = i.word_id AND i.ip = '${ip}'
+    WHERE 
+        w.word LIKE '%${keyword}%'
+    ORDER BY 
+        CASE
+        WHEN w.word LIKE '${keyword}' THEN 0
+        WHEN w.word LIKE '${keyword}%' THEN 1
+        WHEN w.word LIKE '%${keyword}%' THEN 2
+        ELSE 3 
+    END, 
+    v.priority DESC
+    LIMIT ${wordPerPage * page}, ${wordPerPage}`);
+
       const [ret] = result;
       return JSON.stringify(ret);
     } catch (error) {
