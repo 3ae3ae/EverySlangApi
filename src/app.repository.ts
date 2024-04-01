@@ -53,9 +53,8 @@ export class Repository {
     const [result] = await connection.query(
       `SELECT word_id, isLike FROM ip WHERE ip='${ip}' AND word_id='${word_id}'`,
     );
-    console.log(result);
     if (JSON.parse(JSON.stringify(result)).length === 0) return;
-    const like = result['isLike'] === 1 ? 'like' : 'dislike';
+    const like = result[0]['isLike'] === 1 ? 'like' : 'dislike';
     await connection.query(
       `DELETE FROM ip WHERE ip='${ip}' AND word_id='${word_id}'`,
     );
@@ -116,7 +115,8 @@ export class Repository {
     w.meaning,
     v.like_amount,
     v.dislike_amount,
-    COALESCE(i.isLike, -1) as isLike
+    COALESCE(i.isLike, -1) as isLike,
+    w.word_id
     FROM 
         words AS w
     INNER JOIN 

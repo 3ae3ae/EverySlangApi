@@ -15,22 +15,27 @@ import { WordDto, VoteDto } from './app.model';
 export class AppController {
   constructor(private readonly appService: AppService) {}
 
+  // @Header('Access-Control-Allow-Origin', '*')
   @Post('/create')
   createWord(@Body() wordDto: WordDto) {
     return this.appService.createWord(wordDto);
   }
 
+  // @Header('Access-Control-Allow-Origin', '*')
   @Put('/vote')
-  voteWord(@Body() voteDto: VoteDto) {
+  voteWord(@Body() voteDto: VoteDto, @Req() req) {
+    voteDto.ip = req.ip;
     return this.appService.voteWord(voteDto);
   }
 
+  // @Header('Access-Control-Allow-Origin', '*')
   @Put('/removevote')
-  removeVote(@Body() voteDto: VoteDto) {
+  removeVote(@Body() voteDto: VoteDto, @Req() req) {
+    voteDto.ip = req.ip;
     return this.appService.removeVote(voteDto);
   }
 
-  @Header('Access-Control-Allow-Origin', '*')
+  // @Header('Access-Control-Allow-Origin', '*')
   @Get('/search')
   getWords(
     @Query('keyword') keyword: string,
