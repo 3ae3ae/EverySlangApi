@@ -1,13 +1,4 @@
-import {
-  Controller,
-  Get,
-  Body,
-  Query,
-  Post,
-  Put,
-  Header,
-  Req,
-} from '@nestjs/common';
+import { Controller, Get, Body, Query, Post, Put, Req } from '@nestjs/common';
 import { AppService } from './app.service';
 import { WordDto, VoteDto } from './app.model';
 
