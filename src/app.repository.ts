@@ -22,18 +22,20 @@ export class Repository {
   async createWord(wordDto: WordDto) {
     const { word, meaning } = wordDto;
     const connection = await this.pool.getConnection();
+    const e = (a) => connection.escape(a);
+    const ei = (a) => connection.escapeId(a);
     try {
-      const [rows] = await connection.query(`SELECT COUNT(word_id) AS n
+      const [rows] = await connection.execute(`SELECT COUNT(word_id) AS n
       FROM words
-      WHERE word='${word}' AND meaning='${meaning}'`);
+      WHERE word=${e(word)} AND meaning=${e(meaning)}`);
       const n = rows[0]['n'];
       if (n === 0) {
-        const result = await connection.query(
-          `INSERT INTO words (word, meaning) VALUES ('${word}', '${meaning}')`,
+        const result = await connection.execute(
+          `INSERT INTO words (word, meaning) VALUES (${e(word)}, ${e(meaning)})`,
         );
-        const [id] = await connection.query(`SELECT LAST_INSERT_ID() as id`);
-        const result2 = await connection.query(
-          `INSERT INTO vote (like_amount, dislike_amount, word_id) VALUES (0, 0, ${id[0].id})`,
+        const [id] = await connection.execute(`SELECT LAST_INSERT_ID() as id`);
+        const result2 = await connection.execute(
+          `INSERT INTO vote (like_amount, dislike_amount, word_id) VALUES (0, 0, ${e(id[0].id)})`,
         );
         return 'OK';
       }
@@ -50,37 +52,43 @@ export class Repository {
     ip: string,
     connection: mysql.PoolConnection,
   ) {
-    const [result] = await connection.query(
-      `SELECT word_id, isLike FROM ip WHERE ip='${ip}' AND word_id='${word_id}'`,
+    const e = (a) => connection.escape(a);
+    const ei = (a) => connection.escapeId(a);
+    const [result] = await connection.execute(
+      `SELECT word_id, isLike FROM ip WHERE ip=${e(ip)} AND word_id=${e(word_id)}`,
     );
     if (JSON.parse(JSON.stringify(result)).length === 0) return;
     const like = result[0]['isLike'] === 1 ? 'like' : 'dislike';
-    await connection.query(
-      `DELETE FROM ip WHERE ip='${ip}' AND word_id='${word_id}'`,
+    await connection.execute(
+      `DELETE FROM ip WHERE ip=${e(ip)} AND word_id=${e(word_id)}`,
     );
-    await connection.query(
-      `UPDATE vote SET ${like}_amount = ${like}_amount - 1 WHERE word_id=${word_id}`,
+    await connection.execute(
+      `UPDATE vote SET ${ei(`${like}_amount`)} = ${ei(`${like}_amount`)} - 1 WHERE word_id=${e(word_id)}`,
     );
     await this.setPriority(word_id, connection);
     return 'OK';
   }
 
   async setPriority(word_id: number, connection: mysql.PoolConnection) {
-    await connection.query(
-      `update vote set priority = like_amount - dislike_amount where word_id='${word_id}'`,
+    const e = (a) => connection.escape(a);
+    const ei = (a) => connection.escapeId(a);
+    await connection.execute(
+      `update vote set priority = like_amount - dislike_amount where word_id='${e(word_id)}'`,
     );
   }
 
   async voteWord(voteDto: VoteDto) {
     const { ip, word_id, vote } = voteDto;
     const connection = await this.pool.getConnection();
+    const e = (a) => connection.escape(a);
+    const ei = (a) => connection.escapeId(a);
     try {
       await this.resetVote(word_id, ip, connection);
-      const updateResult = await connection.query(
-        `UPDATE vote SET ${vote}_amount = ${vote}_amount + 1 WHERE word_id = '${word_id}'`,
+      const updateResult = await connection.execute(
+        `UPDATE vote SET ${ei(`${vote}_amount`)} = ${ei(`${vote}_amount`)} + 1 WHERE word_id = ${e(word_id)}`,
       );
-      const insertResult = await connection.query(
-        `INSERT INTO ip (word_id, ip, isLike) VALUES (${word_id}, '${ip}', ${vote === 'like' ? 1 : 0})`,
+      const insertResult = await connection.execute(
+        `INSERT INTO ip (word_id, ip, isLike) VALUES (${e(word_id)}, ${e(ip)}, ${e(vote === 'like' ? 1 : 0)})`,
       );
       await this.setPriority(word_id, connection);
       return 'OK';
@@ -108,9 +116,11 @@ export class Repository {
 
   async getWords(keyword: string, page: number, ip: string) {
     const connection = await this.pool.getConnection();
+    const e = (a) => connection.escape(a);
+    const ei = (a) => connection.escapeId(a);
     try {
       const wordPerPage = 10;
-      const result = await connection.query(`SELECT 
+      const result = await connection.execute(`SELECT 
     w.word, 
     w.meaning,
     v.like_amount,
@@ -122,18 +132,18 @@ export class Repository {
     INNER JOIN 
         vote AS v ON w.word_id = v.word_id
     LEFT JOIN 
-        ip AS i ON w.word_id = i.word_id AND i.ip = '${ip}'
+        ip AS i ON w.word_id = i.word_id AND i.ip = ${e(ip)}
     WHERE 
-        w.word LIKE '%${keyword}%'
+        w.word LIKE ${e(`%${keyword}%`)}
     ORDER BY 
         CASE
-        WHEN w.word LIKE '${keyword}' THEN 0
-        WHEN w.word LIKE '${keyword}%' THEN 1
-        WHEN w.word LIKE '%${keyword}%' THEN 2
+        WHEN w.word LIKE ${e(`${keyword}`)} THEN 0
+        WHEN w.word LIKE ${e(`${keyword}%`)} THEN 1
+        WHEN w.word LIKE ${e(`%${keyword}`)} THEN 2
         ELSE 3 
     END, 
     v.priority DESC
-    LIMIT ${wordPerPage * page}, ${wordPerPage}`);
+    LIMIT ${e(wordPerPage * page)}, ${e(wordPerPage)}`);
 
       const [ret] = result;
       return JSON.stringify(ret);
