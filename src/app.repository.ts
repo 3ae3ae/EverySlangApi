@@ -30,6 +30,7 @@ export class Repository {
       WHERE word=${e(word)} AND meaning=${e(meaning)}`);
       const n = rows[0]['n'];
       if (n === 0) {
+        await connection.query('start transaction');
         const result = await connection.execute(
           `INSERT INTO words (word, meaning) VALUES (${e(word)}, ${e(meaning)})`,
         );
@@ -37,10 +38,13 @@ export class Repository {
         const result2 = await connection.execute(
           `INSERT INTO vote (like_amount, dislike_amount, word_id) VALUES (0, 0, ${e(id[0].id)})`,
         );
+        await connection.query('commit');
+
         return 'OK';
       }
     } catch (error) {
       console.log(error);
+      await connection.query('rollback');
       return 'fail';
     } finally {
       connection.release();
@@ -52,29 +56,39 @@ export class Repository {
     ip: string,
     connection: mysql.PoolConnection,
   ) {
-    const e = (a) => connection.escape(a);
-    const ei = (a) => connection.escapeId(a);
-    const [result] = await connection.execute(
-      `SELECT word_id, isLike FROM ip WHERE ip=${e(ip)} AND word_id=${e(word_id)}`,
-    );
-    if (JSON.parse(JSON.stringify(result)).length === 0) return;
-    const like = result[0]['isLike'] === 1 ? 'like' : 'dislike';
-    await connection.execute(
-      `DELETE FROM ip WHERE ip=${e(ip)} AND word_id=${e(word_id)}`,
-    );
-    await connection.execute(
-      `UPDATE vote SET ${ei(`${like}_amount`)} = ${ei(`${like}_amount`)} - 1 WHERE word_id=${e(word_id)}`,
-    );
-    await this.setPriority(word_id, connection);
-    return 'OK';
+    try {
+      const e = (a) => connection.escape(a);
+      const ei = (a) => connection.escapeId(a);
+      await connection.query('start transaction');
+      const [result] = await connection.execute(
+        `SELECT word_id, isLike FROM ip WHERE ip=${e(ip)} AND word_id=${e(word_id)}`,
+      );
+      if (JSON.parse(JSON.stringify(result)).length === 0) return;
+      const like = result[0]['isLike'] === 1 ? 'like' : 'dislike';
+      await connection.execute(
+        `DELETE FROM ip WHERE ip=${e(ip)} AND word_id=${e(word_id)}`,
+      );
+      await connection.execute(
+        `UPDATE vote SET ${ei(`${like}_amount`)} = ${ei(`${like}_amount`)} - 1 WHERE word_id=${e(word_id)}`,
+      );
+      await this.setPriority(word_id, connection);
+      await connection.query('commit');
+      return 'OK';
+    } catch (error) {
+      await connection.query('rollback');
+    }
   }
 
   async setPriority(word_id: number, connection: mysql.PoolConnection) {
-    const e = (a) => connection.escape(a);
-    const ei = (a) => connection.escapeId(a);
-    await connection.execute(
-      `update vote set priority = like_amount - dislike_amount where word_id='${e(word_id)}'`,
-    );
+    try {
+      const e = (a) => connection.escape(a);
+      const ei = (a) => connection.escapeId(a);
+      await connection.execute(
+        `update vote set priority = like_amount - dislike_amount where word_id='${e(word_id)}'`,
+      );
+    } catch (error) {
+      console.log(error);
+    }
   }
 
   async voteWord(voteDto: VoteDto) {
@@ -83,6 +97,7 @@ export class Repository {
     const e = (a) => connection.escape(a);
     const ei = (a) => connection.escapeId(a);
     try {
+      await connection.query('start transaction');
       await this.resetVote(word_id, ip, connection);
       const updateResult = await connection.execute(
         `UPDATE vote SET ${ei(`${vote}_amount`)} = ${ei(`${vote}_amount`)} + 1 WHERE word_id = ${e(word_id)}`,
@@ -91,8 +106,10 @@ export class Repository {
         `INSERT INTO ip (word_id, ip, isLike) VALUES (${e(word_id)}, ${e(ip)}, ${e(vote === 'like' ? 1 : 0)})`,
       );
       await this.setPriority(word_id, connection);
+      await connection.query('commit');
       return 'OK';
     } catch (err) {
+      await connection.query('rollback');
       console.log(err);
       return 'fail';
     } finally {
