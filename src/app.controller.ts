@@ -6,6 +6,11 @@ import { WordDto, VoteDto } from './app.model';
 export class AppController {
   constructor(private readonly appService: AppService) {}
 
+  @Get('/')
+  respondOk() {
+    return 'OK';
+  }
+
   // @Header('Access-Control-Allow-Origin', '*')
   @Post('/create')
   createWord(@Body() wordDto: WordDto) {

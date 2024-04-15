@@ -159,7 +159,7 @@ export class Repository {
         WHEN w.word LIKE ${e(`%${keyword}`)} THEN 2
         ELSE 3 
     END, 
-    v.priority DESC
+    v.priority DESC, w.word_id
     LIMIT ${e(wordPerPage * page)}, ${e(wordPerPage)}`);
 
       const [ret] = result;
