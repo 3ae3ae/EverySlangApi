@@ -1,21 +1,16 @@
 import * as mysql from 'mysql2/promise';
 import { Injectable, Inject } from '@nestjs/common';
-import databaseConfig from './config/database.config';
-import { ConfigType } from '@nestjs/config';
 import { VoteDto, WordDto } from './app.model';
 
 @Injectable()
 export class Repository {
   pool: mysql.Pool;
-  constructor(
-    @Inject(databaseConfig.KEY)
-    private readonly config: ConfigType<typeof databaseConfig>,
-  ) {
+  constructor() {
     this.pool = mysql.createPool({
-      host: config.host,
-      user: config.user,
-      password: config.password,
-      database: config.database,
+      host: process.env.DATABASE_HOST,
+      user: process.env.DATABASE_USER,
+      password: process.env.DATABASE_PASSWORD,
+      database: process.env.DATABASE_NAME,
     });
   }
 
