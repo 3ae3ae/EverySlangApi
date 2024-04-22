@@ -20,14 +20,14 @@ export class AppController {
   // @Header('Access-Control-Allow-Origin', '*')
   @Put('/vote')
   voteWord(@Body() voteDto: VoteDto, @Req() req) {
-    voteDto.ip = req.ip;
+    voteDto.ip = req.header('CF-Connecting-IP') as string;
     return this.appService.voteWord(voteDto);
   }
 
   // @Header('Access-Control-Allow-Origin', '*')
   @Put('/removevote')
   removeVote(@Body() voteDto: VoteDto, @Req() req) {
-    voteDto.ip = req.ip;
+    voteDto.ip = req.header('CF-Connecting-IP') as string;
     return this.appService.removeVote(voteDto);
   }
 

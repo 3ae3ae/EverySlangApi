@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { WordDto, VoteDto } from './app.model';
 import { Repository } from './app.repository';
+import { Request } from 'express';
 
 @Injectable()
 export class AppService {
@@ -18,7 +19,8 @@ export class AppService {
     return this.repository.removeVote(voteDto);
   }
 
-  getWords(keyword: string, page: number, req): Promise<string> {
-    return this.repository.getWords(keyword, page, req.ip);
+  getWords(keyword: string, page: number, req: Request): Promise<string> {
+    const ip = req.header('CF-Connecting-IP');
+    return this.repository.getWords(keyword, page, ip);
   }
 }

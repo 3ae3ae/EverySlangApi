@@ -57,18 +57,18 @@ npm run start:dev
 
 ## 🎈 Usage <a name="usage"></a>
 
-| REST API    | Method | Description                        | Request                                                  | Response                                                                                                      | etc                                  |
+| REST API    | Method | Description                        | Request                                                  | Response                                                                                                      | Param                                  |
 | ----------- | ------ | ---------------------------------- | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
 | /create     | Post   | 데이터베이스에 단어 추가           | { word: string, meaning: string}                         |
 | /vote       | Put    | 데이터베이스에 좋아요, 싫어요 전송 | {word_id: number, ip: string, vote: 'like' \| 'dislike'} |
 | /removevote | Put    | 좋아요, 싫어요 취소                | {word_id: number, ip: string, vote: 'like' \| 'dislike'} |
-| /search     | Get    | 단어 검색                          |                                                          | [{word:string, meaning: string, like_amount:number, dislike_amount:number, isLike:number, word_id:number}...] | 파라미터 keyword:string, page:number |
+| /search     | Get    | 단어 검색                          |                                                          | [{word:string, meaning: string, like_amount:number, dislike_amount:number, isLike:number, word_id:number}...] | keyword:string, page:number |
 
 ## ⛏️ Built Using <a name = "built_using"></a>
 
 - [NodeJs](https://nodejs.org/)
 - [NestJs](https://nestjs.com/)
-- [Docker] (https://www.docker.com/)
+- [Docker](https://www.docker.com/)
 
 ## ✍️ Authors <a name = "authors"></a>
 
