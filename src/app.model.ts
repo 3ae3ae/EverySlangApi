@@ -1,6 +1,7 @@
 export interface WordDto {
   word: string;
   meaning: string;
+  [key: string]: string;
 }
 
 export interface VoteDto {
