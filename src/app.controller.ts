@@ -1,6 +1,16 @@
-import { Controller, Get, Body, Query, Post, Put, Req } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Body,
+  Query,
+  Post,
+  Put,
+  Req,
+  Res,
+} from '@nestjs/common';
 import { AppService } from './app.service';
 import { WordDto, VoteDto } from './app.model';
+import { Response } from 'express';
 
 @Controller()
 export class AppController {
@@ -13,8 +23,9 @@ export class AppController {
 
   // @Header('Access-Control-Allow-Origin', '*')
   @Post('/create')
-  createWord(@Body() wordDto: WordDto) {
-    return this.appService.createWord(wordDto);
+  async createWord(@Res() res: Response, @Body() wordDto: WordDto) {
+    const uri = await this.appService.createWord(wordDto);
+    res.redirect(uri);
   }
 
   // @Header('Access-Control-Allow-Origin', '*')

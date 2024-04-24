@@ -1,5 +1,5 @@
 import * as mysql from 'mysql2/promise';
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { VoteDto, WordDto } from './app.model';
 
 @Injectable()
@@ -18,7 +18,6 @@ export class Repository {
     const { word, meaning } = wordDto;
     const connection = await this.pool.getConnection();
     const e = (a) => connection.escape(a);
-    const ei = (a) => connection.escapeId(a);
     try {
       const [rows] = await connection.execute(`SELECT COUNT(word_id) AS n
       FROM words
@@ -34,15 +33,13 @@ export class Repository {
           `INSERT INTO vote (like_amount, dislike_amount, word_id) VALUES (0, 0, ${e(id[0].id)})`,
         );
         await connection.query('commit');
-
-        return 'OK';
       }
     } catch (error) {
       console.log(error);
       await connection.query('rollback');
-      return 'fail';
     } finally {
       connection.release();
+      return 'https://everyslang.com';
     }
   }
 
