@@ -126,7 +126,6 @@ export class Repository {
   async getWords(keyword: string, page: number, ip: string) {
     const connection = await this.pool.getConnection();
     const e = (a) => connection.escape(a);
-    const ei = (a) => connection.escapeId(a);
     try {
       const wordPerPage = 10;
       const result = await connection.execute(`SELECT 
@@ -151,11 +150,31 @@ export class Repository {
         WHEN w.word LIKE ${e(`%${keyword}`)} THEN 2
         ELSE 3 
     END, 
-    v.priority DESC, w.word_id
+    v.priority DESC, w.word_id DESC
     LIMIT ${e(wordPerPage * page)}, ${e(wordPerPage)}`);
 
       const [ret] = result;
       return JSON.stringify(ret);
+    } catch (error) {
+      console.log(error);
+    } finally {
+      connection.release();
+    }
+  }
+
+  async removeWord(word_id: number) {
+    const connection = await this.pool.getConnection();
+    const e = (a) => connection.escape(a);
+    try {
+      await connection.execute(
+        `DELETE FROM ip WHERE ip.word_id = ${e(word_id)}`,
+      );
+      await connection.execute(
+        `DELETE FROM vote WHERE vote.word_id = ${e(word_id)}`,
+      );
+      await connection.execute(
+        `DELETE FROM words WHERE words.word_id = ${e(word_id)}`,
+      );
     } catch (error) {
       console.log(error);
     } finally {
