@@ -56,6 +56,7 @@ set DATABASE_USER=<Your database user name>
 DATABASE_HOST=<Your database host name>
 DATABASE_NAME=<Your database name>
 DATABASE_PASSWORD=<Your databse passwsord>
+SECRET_KEY=<Your Turnstile secret key>
 
 ```
 

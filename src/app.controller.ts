@@ -7,10 +7,12 @@ import {
   Put,
   Req,
   Res,
+  UseGuards,
 } from '@nestjs/common';
 import { AppService } from './app.service';
 import { WordDto, VoteDto } from './app.model';
 import { Response } from 'express';
+import { Turnstile } from './app.guard';
 
 @Controller()
 export class AppController {
@@ -22,6 +24,7 @@ export class AppController {
   }
 
   // @Header('Access-Control-Allow-Origin', '*')
+  @UseGuards(Turnstile)
   @Post('/create')
   async createWord(@Res() res: Response, @Body() wordDto: WordDto) {
     const uri = await this.appService.createWord(wordDto);
