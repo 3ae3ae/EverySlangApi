@@ -49,7 +49,17 @@ cd EverySlangApi
 npm i
 ```
 
-3. 로컬 개발 서버를 실행합니다.
+3. 환경변수를 설정합니다.
+
+```
+set DATABASE_USER=<Your database user name>
+DATABASE_HOST=<Your database host name>
+DATABASE_NAME=<Your database name>
+DATABASE_PASSWORD=<Your databse passwsord>
+
+```
+
+4. 로컬 개발 서버를 실행합니다.
 
 ```
 npm run start:dev
@@ -57,8 +67,8 @@ npm run start:dev
 
 ## 🎈 Usage <a name="usage"></a>
 
-| REST API    | Method | Description                        | Request                                                  | Response                                                                                                      | Param                                  |
-| ----------- | ------ | ---------------------------------- | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
+| REST API    | Method | Description                        | Request                                                  | Response                                                                                                      | Param                       |
+| ----------- | ------ | ---------------------------------- | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | --------------------------- |
 | /create     | Post   | 데이터베이스에 단어 추가           | { word: string, meaning: string}                         |
 | /vote       | Put    | 데이터베이스에 좋아요, 싫어요 전송 | {word_id: number, ip: string, vote: 'like' \| 'dislike'} |
 | /removevote | Put    | 좋아요, 싫어요 취소                | {word_id: number, ip: string, vote: 'like' \| 'dislike'} |
