@@ -40,7 +40,7 @@ export class Repository {
       await connection.query('rollback');
     } finally {
       connection.release();
-      return 'https://everyslang.com';
+      return this.config.get('REDIRECT_URL');
     }
   }
 

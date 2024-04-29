@@ -14,4 +14,6 @@ COPY --from=buildStage /node_modules /node_modules
 
 EXPOSE 3000
 
+ENV NODE_ENV=prod
+
 CMD ["node", "dist/main"]

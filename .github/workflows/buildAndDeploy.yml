@@ -28,6 +28,17 @@ jobs:
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            sudo docker rm -f $(docker ps -qa)
+            running_containers=$(sudo docker ps -q | wc -l)
+            total_containers=$(sudo docker ps -aq | wc -l)
+            total_image$(sudo docker images -q | wc -l)
+            if [ $running_s=containers -gt 0 ]; then
+                sudo docker stop $(sudo docker ps -aq)
+            fi
+            if [ $total_containers -gt 0 ]; then
+                sudo docker rm $(sudo docker ps -aq)
+            fi
+            if [ $total_images -gt 0 ]; then
+                sudo docker rmi $(sudo docker images -q)
+            fi
             sudo docker image pull ${{ secrets.DOCKER_HUB_USERNAME }}/everyslang-api-server:latest
-            sudo docker container run -d -e DATABASE_USER=${{ secrets.DATABASE_USER }} -e DATABASE_HOST=${{ secrets.DATABASE_HOST }} -e DATABASE_NAME=${{ secrets.DATABASE_NAME }} -e DATABASE_PASSWORD=${{ secrets.DATABASE_PASSWORD }} -e SECRET_KEY=${{ secrets.TURNSTILE_SECRET }} -p 80:3000 ${{ secrets.DOCKER_HUB_USERNAME }}/everyslang-api-server:latest
+            sudo docker container run -d -e REDIRECT_URL=https://everyslang.com -e DATABASE_USER=${{ secrets.DATABASE_USER }} -e DATABASE_HOST=${{ secrets.DATABASE_HOST }} -e DATABASE_NAME=${{ secrets.DATABASE_NAME }} -e DATABASE_PASSWORD=${{ secrets.DATABASE_PASSWORD }} -e SECRET_KEY=${{ secrets.TURNSTILE_SECRET }} -p 80:3000 ${{ secrets.DOCKER_HUB_USERNAME }}/everyslang-api-server:latest

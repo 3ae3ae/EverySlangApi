@@ -31,7 +31,7 @@ export class AppController {
   @Post('/create')
   async createWord(@Res() res: Response, @Body() wordDto: WordDto) {
     const uri = await this.appService.createWord(wordDto);
-    res.redirect(this.config.get('REDIRECT_URL'));
+    res.redirect(uri);
   }
 
   // @Header('Access-Control-Allow-Origin', '*')
