@@ -13,11 +13,14 @@ import { AppService } from './app.service';
 import { WordDto, VoteDto } from './app.model';
 import { Response } from 'express';
 import { Turnstile } from './app.guard';
+import { ConfigService } from '@nestjs/config';
 
 @Controller()
 export class AppController {
-  constructor(private readonly appService: AppService) {}
-
+  constructor(
+    private readonly appService: AppService,
+    private readonly config: ConfigService,
+  ) {}
   @Get('/')
   respondOk() {
     return 'OK';
@@ -28,7 +31,7 @@ export class AppController {
   @Post('/create')
   async createWord(@Res() res: Response, @Body() wordDto: WordDto) {
     const uri = await this.appService.createWord(wordDto);
-    res.redirect(uri);
+    res.redirect(this.config.get('REDIRECT_URL'));
   }
 
   // @Header('Access-Control-Allow-Origin', '*')
