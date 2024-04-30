@@ -20,6 +20,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           push: true
+          target: prod
           tags: ${{secrets.DOCKER_HUB_USERNAME}}/everyslang-api-server:latest
       - name: executing remote ssh commands using password
         uses: appleboy/ssh-action@v1.0.3
