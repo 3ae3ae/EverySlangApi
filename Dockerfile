@@ -8,7 +8,7 @@ FROM node AS buildStage
 
 COPY . .
 
-RUN npm i
+COPY --from=base /node_modules /node_modules
 
 ENV NODE_ENV=prod
 
@@ -25,6 +25,8 @@ EXPOSE 3000
 CMD ["node", "dist/main"]
 
 FROM node as dev
+
+COPY --from=base . .
 
 ENV NODE_ENV=dev
 
