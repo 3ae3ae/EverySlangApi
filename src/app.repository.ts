@@ -182,4 +182,46 @@ export class Repository {
       connection.release();
     }
   }
+
+  async isMember(id: string) {
+    const connection = await this.pool.getConnection();
+    try {
+      await connection.query('start transaction');
+      const result = await connection.execute(
+        `SELECT id FROM id WHERE id = ${id}`,
+      );
+      const [ret] = result;
+      await connection.query('commit');
+      if (JSON.parse(JSON.stringify(ret)).length === 0) return false;
+      return true;
+    } catch (error) {
+      await connection.query('rollback');
+      console.log(error);
+      return false;
+    } finally {
+      await connection.release();
+    }
+  }
+  // 수정 필요
+  async storeMemberInfo(id: string, access_token: string, nickname?: string) {
+    const connection = await this.pool.getConnection();
+    try {
+      await connection.query('start transaction');
+      await connection.execute(
+        `INSERT INTO id (id, access_token, nickname)
+        VALUES (${id}, ${access_token}, ${nickname === null ? '0' : nickname})
+        ON DUPLICATE KEY UPDATE
+        access_token=${access_token}
+        ${nickname === null ? ';' : ', ' + 'nickname=' + nickname + ';'}`,
+      );
+      connection.query('commit');
+      return true;
+    } catch (error) {
+      console.log(error);
+      connection.query('rollback');
+    } finally {
+      connection.release();
+    }
+    await connection.query('commit');
+  }
 }

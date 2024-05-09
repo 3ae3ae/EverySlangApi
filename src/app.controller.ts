@@ -10,8 +10,8 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { AppService } from './app.service';
-import { WordDto, VoteDto } from './app.model';
-import { Response } from 'express';
+import { WordDto, VoteDto, Token } from './app.model';
+import { Response, Request } from 'express';
 import { Turnstile } from './app.guard';
 import { ConfigService } from '@nestjs/config';
 
@@ -24,6 +24,23 @@ export class AppController {
   @Get('/')
   respondOk() {
     return 'OK';
+  }
+
+  @Get('/login')
+  async auth(
+    @Res() res: Response,
+    @Query('code') code,
+    @Query('error') error,
+    @Query('error_description') error_description,
+    @Query('state') state,
+  ) {
+    if (error !== undefined) {
+      console.log('it is error');
+      console.log(error, ' ', error_description);
+      return 'error';
+    }
+    console.log('pass error test');
+    this.appService.loginUser(code, state, res);
   }
 
   // @Header('Access-Control-Allow-Origin', '*')
