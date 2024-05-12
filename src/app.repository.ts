@@ -15,6 +15,21 @@ export class Repository {
     });
   }
 
+  async getNickname(id: string) {
+    const connection = await this.pool.getConnection();
+    const e = (a) => connection.escape(a);
+    try {
+      const [result] = await connection.execute(
+        `SELECT nickname FROM id WHERE id = ${e(id)}`,
+      );
+      return result[0]['nickname'];
+    } catch (error) {
+      console.log(error);
+    } finally {
+      connection.release();
+    }
+  }
+
   async createWord(wordDto: WordDto) {
     const { word, meaning } = wordDto;
     const connection = await this.pool.getConnection();
@@ -128,6 +143,7 @@ export class Repository {
     const connection = await this.pool.getConnection();
     const e = (a) => connection.escape(a);
     try {
+      console.log('cool');
       const wordPerPage = 10;
       const result = await connection.execute(`SELECT 
     w.word, 
@@ -157,8 +173,10 @@ export class Repository {
       const [ret] = result;
       return JSON.stringify(ret);
     } catch (error) {
+      console.log('errrrrror');
       console.log(error);
     } finally {
+      console.log('ednnnnnnnnd');
       connection.release();
     }
   }
@@ -184,11 +202,12 @@ export class Repository {
   }
 
   async isMember(id: string) {
+    const e = (a) => connection.escape(a);
     const connection = await this.pool.getConnection();
     try {
       await connection.query('start transaction');
       const result = await connection.execute(
-        `SELECT id FROM id WHERE id = ${id}`,
+        `SELECT id FROM id WHERE id = ${e(id)}`,
       );
       const [ret] = result;
       await connection.query('commit');
@@ -202,26 +221,40 @@ export class Repository {
       await connection.release();
     }
   }
-  // 수정 필요
-  async storeMemberInfo(id: string, access_token: string, nickname?: string) {
+
+  async checkNickname(name: string) {
+    const connection = await this.pool.getConnection();
+    const e = (a) => connection.escape(a);
+    try {
+      const [result] = await connection.execute(
+        `SELECT nickname FROM id WHERE nickname = ${e(name)}`,
+      );
+      if (JSON.parse(JSON.stringify(result)).length === 0) return true;
+      else return false;
+    } catch (error) {
+      console.log(error);
+      return false;
+    } finally {
+      connection.release();
+    }
+  }
+
+  async registerMember(name: string, id: string) {
+    const e = (a) => connection.escape(a);
     const connection = await this.pool.getConnection();
     try {
       await connection.query('start transaction');
       await connection.execute(
-        `INSERT INTO id (id, access_token, nickname)
-        VALUES (${id}, ${access_token}, ${nickname === null ? '0' : nickname})
-        ON DUPLICATE KEY UPDATE
-        access_token=${access_token}
-        ${nickname === null ? ';' : ', ' + 'nickname=' + nickname + ';'}`,
+        `INSERT INTO id (id, nickname) VALUES (${e(id)}, ${e(name)})`,
       );
-      connection.query('commit');
-      return true;
+      await connection.query('commit');
+      return 'OK';
     } catch (error) {
       console.log(error);
-      connection.query('rollback');
+      await connection.query('rollback');
+      return 'FAIL';
     } finally {
       connection.release();
     }
-    await connection.query('commit');
   }
 }

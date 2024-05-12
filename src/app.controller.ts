@@ -11,7 +11,7 @@ import {
 } from '@nestjs/common';
 import { AppService } from './app.service';
 import { WordDto, VoteDto, Token } from './app.model';
-import { Response, Request } from 'express';
+import { Response, Request, query } from 'express';
 import { Turnstile } from './app.guard';
 import { ConfigService } from '@nestjs/config';
 
@@ -24,6 +24,23 @@ export class AppController {
   @Get('/')
   respondOk() {
     return 'OK';
+  }
+
+  @Get('/validatenickname')
+  async validatenickname(@Query('name') name) {
+    return await this.appService.checkNickname(name);
+  }
+
+  @Post('/registerMember')
+  async registerMember(
+    @Body() body,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
+    const { name } = body;
+    console.log(req.cookies);
+    console.log(req.cookies['access_token']);
+    return await this.appService.registerMember(name, req, res);
   }
 
   @Get('/login')
@@ -67,11 +84,13 @@ export class AppController {
 
   // @Header('Access-Control-Allow-Origin', '*')
   @Get('/search')
-  getWords(
+  async getWords(
     @Query('keyword') keyword: string,
     @Query('page') page: number,
     @Req() req,
   ) {
-    return this.appService.getWords(keyword, page, req);
+    const a = await this.appService.getWords(keyword, page, req);
+    console.log(a);
+    return a;
   }
 }

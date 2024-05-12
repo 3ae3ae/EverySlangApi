@@ -34,9 +34,8 @@ export class LogIn {
     return response.data;
   }
 
-  async getUserId(token: Token): Promise<string> {
+  async getUserId(ACCESS_TOKEN: string): Promise<string> {
     const url = 'https://kapi.kakao.com/v1/user/access_token_info';
-    const ACCESS_TOKEN = token.access_token;
     const response = await lastValueFrom(
       this.httpservice.get(url, {
         headers: { Authorization: `Bearer ${ACCESS_TOKEN}` },
@@ -49,5 +48,9 @@ export class LogIn {
 
   async isMember(id: string) {
     return await this.repository.isMember(id);
+  }
+
+  async getNickname(id: string) {
+    return await this.repository.getNickname(id);
   }
 }
