@@ -1,10 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { WordDto, VoteDto } from './app.model';
 import { Repository } from './app.repository';
-import { CookieOptions, Request, Response } from 'express';
+import { Request, Response } from 'express';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { LogIn } from './app.login';
+import { CustomJwt } from './app.jwt';
 
 @Injectable()
 export class AppService {
@@ -13,21 +14,16 @@ export class AppService {
     private readonly httpservice: HttpService,
     private readonly config: ConfigService,
     private readonly login: LogIn,
+    private readonly jwt: CustomJwt,
   ) {}
 
   async checkNickname(name: string) {
     return await this.repository.checkNickname(name);
   }
 
-  async registerMember(name: string, req: Request, res: Response) {
-    console.log(req.cookies);
-
-    const access_token: string = req.cookies['access_token'];
-    console.log(access_token);
-    const id = await this.login.getUserId(access_token);
-    res.cookie('nickname', name);
-    console.log(id);
-    return await this.repository.registerMember(name, id);
+  async setNickname(name: string, req: Request, res: Response) {
+    const id: string = req['user']['id'];
+    return await this.repository.setNickname(name, id);
   }
 
   async createWord(wordDto: WordDto) {
@@ -48,35 +44,19 @@ export class AppService {
   }
 
   async loginUser(code: string, state: string, res: Response) {
-    const token = await this.login.getAccessToken(code, state);
-    console.log(token);
-    console.log('get token complete');
-    const id = await this.login.getUserId(token.access_token);
-    console.log('get id complete');
-    const isMember = await this.login.isMember(id);
-    console.log('check member complete');
-    const cookieOption: CookieOptions = {
-      httpOnly: false,
-    };
-    const access_token_option: CookieOptions = {
-      ...cookieOption,
-      maxAge: token.expires_in * 1000,
-    };
-    const refresh_token_option: CookieOptions = {
-      ...cookieOption,
-      maxAge: token.refresh_token_expires_in * 1000,
-    };
+    const kakaoToken = await this.login.getToken(code, state);
+    const id = await this.login.getUserId(kakaoToken.access_token);
+    const hashedId = this.jwt.makeHash(id);
+    const _token = this.jwt.makeToken(hashedId);
+    const _isMember = this.login.isMember(hashedId);
+    const token = await _token;
+    const isMember = await _isMember;
+    res.header('Authorization', token);
     if (isMember) {
-      const nickname = this.login.getNickname(id);
-      res.cookie('nickname', nickname, cookieOption);
-      res.cookie('access_token', token.access_token, access_token_option);
-      res.cookie('refresh_token', token.refresh_token, refresh_token_option);
       res.redirect(this.config.get('REDIRECT_URL'));
     } else {
-      res.cookie('access_token', token.access_token, access_token_option);
-      res.cookie('refresh_token', token.refresh_token, refresh_token_option);
+      this.login.registerMember(kakaoToken, hashedId);
       res.redirect(this.config.get('REDIRECT_URL') + '/nickname.html');
-      console.log('redirect complete');
     }
   }
 }

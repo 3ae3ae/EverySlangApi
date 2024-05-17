@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { lastValueFrom } from 'rxjs';
-import { Token } from './app.model';
+import { JwtToken, KakaoToken } from './app.model';
 import { Repository } from './app.repository';
 
 @Injectable()
@@ -12,11 +12,16 @@ export class LogIn {
     private readonly httpservice: HttpService,
     private readonly repository: Repository,
   ) {}
-  async getAccessToken(code: string, state: string): Promise<Token> {
+
+  async registerMember(token: KakaoToken, id: string) {
+    this.repository.registerMember(token, id);
+  }
+
+  async getToken(code: string, state: string): Promise<KakaoToken> {
     const data = {
       grant_type: 'authorization_code',
       client_id: this.config.get('KAKAO_APP_KEY'),
-      redirect_uri: this.config.get('THIS_URL') + '/login',
+      redirect_uri: this.config.get('THIS_DOMAIN') + '/login',
       code: code,
       client_secret: this.config.get('KAKAO_CLIENT_SECRET'),
     };

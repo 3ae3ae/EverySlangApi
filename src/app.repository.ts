@@ -2,6 +2,9 @@ import * as mysql from 'mysql2/promise';
 import { Injectable } from '@nestjs/common';
 import { VoteDto, WordDto } from './app.model';
 import { ConfigService } from '@nestjs/config';
+import { KakaoToken } from './app.model';
+import * as dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
 
 @Injectable()
 export class Repository {
@@ -239,14 +242,50 @@ export class Repository {
     }
   }
 
-  async registerMember(name: string, id: string) {
+  async registerMember(token: KakaoToken, id: string) {
+    dayjs.extend(utc);
+    const e = (a) => connection.escape(a);
+    const connection = await this.pool.getConnection();
+    const access_expires = dayjs(dayjs().utc().unix() + token.expires_in)
+      .utc()
+      .format('YYYY-MM-DD hh:mm:ss');
+    const refresh_expires = dayjs(
+      dayjs().utc().unix() + token.refresh_token_expires_in,
+    )
+      .utc()
+      .format('YYYY-MM-DD hh:mm:ss');
+
+    try {
+      await connection.query('start transaction');
+      await connection.execute(
+        `INSERT INTO member (hashed_id, access_token, access_expires, refresh_token, refresh_expires) VALUES (${e(id)}, ${e(token.access_token)}, ${e(access_expires)}, ${e(token.refresh_token)}, ${e(refresh_expires)})`,
+      );
+      await connection.query('commit');
+      return 'OK';
+    } catch (error) {
+      console.log(error);
+      await connection.query('rollback');
+      return 'FAIL';
+    } finally {
+      connection.release();
+    }
+  }
+
+  async setNickname(name: string, id: string) {
     const e = (a) => connection.escape(a);
     const connection = await this.pool.getConnection();
     try {
       await connection.query('start transaction');
-      await connection.execute(
-        `INSERT INTO id (id, nickname) VALUES (${e(id)}, ${e(name)})`,
+      const result = await connection.execute(
+        `SELECT * from member where id = ${e(id)}`,
       );
+      const [ret] = result;
+      if (JSON.parse(JSON.stringify(ret)).length !== 1) throw new Error();
+
+      await connection.execute(
+        `UPDATE member SET nickname = ${e(name)} WHERE id = ${e(id)}`,
+      );
+
       await connection.query('commit');
       return 'OK';
     } catch (error) {

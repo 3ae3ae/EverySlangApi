@@ -10,9 +10,9 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { AppService } from './app.service';
-import { WordDto, VoteDto, Token } from './app.model';
+import { WordDto, VoteDto } from './app.model';
 import { Response, Request, query } from 'express';
-import { Turnstile } from './app.guard';
+import { Turnstile, User } from './app.guard';
 import { ConfigService } from '@nestjs/config';
 
 @Controller()
@@ -31,6 +31,10 @@ export class AppController {
     return await this.appService.checkNickname(name);
   }
 
+  /**
+   * DB에 유저 등록
+   */
+  @UseGuards(User)
   @Post('/registerMember')
   async registerMember(
     @Body() body,
@@ -38,9 +42,7 @@ export class AppController {
     @Res() res: Response,
   ) {
     const { name } = body;
-    console.log(req.cookies);
-    console.log(req.cookies['access_token']);
-    return await this.appService.registerMember(name, req, res);
+    return await this.appService.setNickname(name, req, res);
   }
 
   @Get('/login')
@@ -60,7 +62,6 @@ export class AppController {
     this.appService.loginUser(code, state, res);
   }
 
-  // @Header('Access-Control-Allow-Origin', '*')
   @UseGuards(Turnstile)
   @Post('/create')
   async createWord(@Res() res: Response, @Body() wordDto: WordDto) {
@@ -68,21 +69,18 @@ export class AppController {
     res.redirect(uri);
   }
 
-  // @Header('Access-Control-Allow-Origin', '*')
   @Put('/vote')
   voteWord(@Body() voteDto: VoteDto, @Req() req) {
     voteDto.ip = req.header('CF-Connecting-IP') as string;
     return this.appService.voteWord(voteDto);
   }
 
-  // @Header('Access-Control-Allow-Origin', '*')
   @Put('/removevote')
   removeVote(@Body() voteDto: VoteDto, @Req() req) {
     voteDto.ip = req.header('CF-Connecting-IP') as string;
     return this.appService.removeVote(voteDto);
   }
 
-  // @Header('Access-Control-Allow-Origin', '*')
   @Get('/search')
   async getWords(
     @Query('keyword') keyword: string,
