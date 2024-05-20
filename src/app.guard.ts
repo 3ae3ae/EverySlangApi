@@ -4,10 +4,11 @@ import {
   ExecutionContext,
   UnauthorizedException,
 } from '@nestjs/common';
-import { Request } from 'express';
+import { Request, Response } from 'express';
 import { ConfigService } from '@nestjs/config';
 import { CustomJwt } from './app.jwt';
 import { TokenExpiredError } from '@nestjs/jwt';
+import { CookieService } from './app.cookie';
 import { Observable } from 'rxjs';
 
 @Injectable()
@@ -15,6 +16,7 @@ class Turnstile implements CanActivate {
   constructor(private readonly config: ConfigService) {}
   async canActivate(context: ExecutionContext) {
     const req: Request = context.switchToHttp().getRequest();
+
     const token = req.body['cf-turnstile-response'];
     const ip = req.headers['CF-Connecting-IP'] as string;
     const form = new FormData();
@@ -36,18 +38,37 @@ class User implements CanActivate {
   constructor(
     private readonly config: ConfigService,
     private readonly jwt: CustomJwt,
+    private readonly coo: CookieService,
   ) {}
   async canActivate(context: ExecutionContext) {
     const req: Request = context.switchToHttp().getRequest();
-    const token = this.parseToken(req);
-    if (!token) throw new UnauthorizedException('invalid token');
+    const res: Response = context.switchToHttp().getResponse();
+    const accessToken = this.parseToken(req);
+    const refreshToken = this.coo.getCookie(req)['refreshToken'];
+    if (!accessToken || !refreshToken)
+      throw new UnauthorizedException('invalid token');
     try {
-      const payload = await this.jwt.verifyToken(token);
-      req['user'] = payload;
+      const accessTokenBody =
+        await this.jwt.verifyCustomTokenAsync(accessToken);
+      req['id'] = accessTokenBody['id'];
       return true;
-    } catch (error) {
-      if (error instanceof TokenExpiredError) {
-        throw new UnauthorizedException('Token expired');
+    } catch (error1) {
+      if (error1 instanceof TokenExpiredError) {
+        try {
+          const refreshTokenBody =
+            await this.jwt.verifyCustomTokenAsync(refreshToken);
+          const hashed_id = refreshTokenBody['id'];
+          const newAccessToken = await this.jwt.makeAccessToken(hashed_id);
+          req['id'] = hashed_id;
+          res.setHeader('Authorization', newAccessToken);
+          return true;
+        } catch (error2) {
+          if (error2 instanceof TokenExpiredError) {
+            throw new UnauthorizedException('Token expired');
+          } else {
+            throw new UnauthorizedException('Invalid Token');
+          }
+        }
       } else {
         throw new UnauthorizedException('Invalid Token');
       }

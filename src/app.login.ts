@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { lastValueFrom } from 'rxjs';
-import { JwtToken, KakaoToken } from './app.model';
+import { KakaoToken } from './app.model';
 import { Repository } from './app.repository';
 
 @Injectable()
@@ -13,8 +13,8 @@ export class LogIn {
     private readonly repository: Repository,
   ) {}
 
-  async registerMember(token: KakaoToken, id: string) {
-    this.repository.registerMember(token, id);
+  async registerMember(id: string) {
+    this.repository.registerMember(id);
   }
 
   async getToken(code: string, state: string): Promise<KakaoToken> {

@@ -1,3 +1,5 @@
+import { CookieOptions } from 'express';
+
 export interface WordDto {
   word: string;
   meaning: string;
@@ -26,4 +28,10 @@ export interface JwtToken {
 
 export interface Member extends KakaoToken {
   nickname?: string;
+}
+
+export interface Cookie {
+  name: string;
+  val: string;
+  options: CookieOptions;
 }

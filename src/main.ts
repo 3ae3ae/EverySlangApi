@@ -6,6 +6,7 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     logger: ['log', 'error', 'warn', 'debug', 'verbose'],
   });
+  app.use(cookieParser('secret'));
   app.enableCors({
     credentials: true,
     origin: ['http://localhost:4173', 'https://everyslang.com'],

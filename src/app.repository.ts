@@ -242,23 +242,14 @@ export class Repository {
     }
   }
 
-  async registerMember(token: KakaoToken, id: string) {
+  async registerMember(id: string) {
     dayjs.extend(utc);
     const e = (a) => connection.escape(a);
     const connection = await this.pool.getConnection();
-    const access_expires = dayjs(dayjs().utc().unix() + token.expires_in)
-      .utc()
-      .format('YYYY-MM-DD hh:mm:ss');
-    const refresh_expires = dayjs(
-      dayjs().utc().unix() + token.refresh_token_expires_in,
-    )
-      .utc()
-      .format('YYYY-MM-DD hh:mm:ss');
-
     try {
       await connection.query('start transaction');
       await connection.execute(
-        `INSERT INTO member (hashed_id, access_token, access_expires, refresh_token, refresh_expires) VALUES (${e(id)}, ${e(token.access_token)}, ${e(access_expires)}, ${e(token.refresh_token)}, ${e(refresh_expires)})`,
+        `INSERT INTO member (hashed_id) VALUES (${e(id)})`,
       );
       await connection.query('commit');
       return 'OK';

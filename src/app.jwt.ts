@@ -2,6 +2,7 @@ import { Injectable, Inject } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { SHA256 } from 'crypto-js';
 import { JwtService, JwtSignOptions, JwtVerifyOptions } from '@nestjs/jwt';
+import { JwtToken } from './app.model';
 
 @Injectable()
 export class CustomJwt extends JwtService {
@@ -13,7 +14,6 @@ export class CustomJwt extends JwtService {
     this.salt = this.config.get('HASH_SALT');
     this.signOption = {
       secret: this.config.get('JWT_SECRET'),
-      expiresIn: '1d',
       subject: this.config.get('THIS_DOMAIN'),
       audience: this.config.get('REDIRECT_URL'),
     };
@@ -24,11 +24,14 @@ export class CustomJwt extends JwtService {
   makeHash(id: string) {
     return SHA256(id + this.salt).toString();
   }
-  async makeToken(id: string) {
-    return this.signAsync({ id }, this.signOption);
+  async makeAccessToken(id: string) {
+    return this.signAsync({ id }, { ...this.signOption, expiresIn: '1h' });
+  }
+  async makeRefreshToken(id: string) {
+    return this.signAsync({ id }, { ...this.signOption, expiresIn: '100d' });
   }
 
-  async verifyToken(token: string) {
+  async verifyCustomTokenAsync(token: string): Promise<JwtToken> {
     return this.verifyAsync(token, this.verifyOption);
   }
 }
