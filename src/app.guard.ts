@@ -43,16 +43,26 @@ class User implements CanActivate {
   async canActivate(context: ExecutionContext) {
     const req: Request = context.switchToHttp().getRequest();
     const res: Response = context.switchToHttp().getResponse();
-    const accessToken = this.parseToken(req);
+    console.log(this.coo.getCookie(req)['refreshToken']);
+    console.log(this.coo.getCookie(req)['accessToken']);
+    const accessToken = this.coo.getCookie(req)['accessToken'];
     const refreshToken = this.coo.getCookie(req)['refreshToken'];
-    if (!accessToken || !refreshToken)
+    console.log(155);
+    if (!accessToken || !refreshToken) {
+      console.log(accessToken);
+      console.log(166);
+      console.log(refreshToken);
       throw new UnauthorizedException('invalid token');
+    }
     try {
       const accessTokenBody =
         await this.jwt.verifyCustomTokenAsync(accessToken);
+      console.log(177);
       req['id'] = accessTokenBody['id'];
       return true;
     } catch (error1) {
+      console.log(188);
+      console.log(error1);
       if (error1 instanceof TokenExpiredError) {
         try {
           const refreshTokenBody =
@@ -63,6 +73,8 @@ class User implements CanActivate {
           res.setHeader('Authorization', newAccessToken);
           return true;
         } catch (error2) {
+          console.log(999);
+          console.log(error2);
           if (error2 instanceof TokenExpiredError) {
             throw new UnauthorizedException('Token expired');
           } else {

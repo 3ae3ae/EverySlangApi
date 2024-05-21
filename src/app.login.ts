@@ -21,7 +21,7 @@ export class LogIn {
     const data = {
       grant_type: 'authorization_code',
       client_id: this.config.get('KAKAO_APP_KEY'),
-      redirect_uri: this.config.get('THIS_DOMAIN') + '/login',
+      redirect_uri: this.config.get('THIS_URL') + '/login',
       code: code,
       client_secret: this.config.get('KAKAO_CLIENT_SECRET'),
     };

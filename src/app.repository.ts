@@ -3,8 +3,6 @@ import { Injectable } from '@nestjs/common';
 import { VoteDto, WordDto } from './app.model';
 import { ConfigService } from '@nestjs/config';
 import { KakaoToken } from './app.model';
-import * as dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc';
 
 @Injectable()
 export class Repository {
@@ -23,7 +21,7 @@ export class Repository {
     const e = (a) => connection.escape(a);
     try {
       const [result] = await connection.execute(
-        `SELECT nickname FROM id WHERE id = ${e(id)}`,
+        `SELECT nickname FROM member WHERE id = ${e(id)}`,
       );
       return result[0]['nickname'];
     } catch (error) {
@@ -210,7 +208,7 @@ export class Repository {
     try {
       await connection.query('start transaction');
       const result = await connection.execute(
-        `SELECT id FROM id WHERE id = ${e(id)}`,
+        `SELECT id FROM member WHERE id = ${e(id)}`,
       );
       const [ret] = result;
       await connection.query('commit');
@@ -230,8 +228,9 @@ export class Repository {
     const e = (a) => connection.escape(a);
     try {
       const [result] = await connection.execute(
-        `SELECT nickname FROM id WHERE nickname = ${e(name)}`,
+        `SELECT nickname FROM member WHERE nickname = ${e(name)}`,
       );
+      console.log(result);
       if (JSON.parse(JSON.stringify(result)).length === 0) return true;
       else return false;
     } catch (error) {
@@ -243,14 +242,11 @@ export class Repository {
   }
 
   async registerMember(id: string) {
-    dayjs.extend(utc);
     const e = (a) => connection.escape(a);
     const connection = await this.pool.getConnection();
     try {
       await connection.query('start transaction');
-      await connection.execute(
-        `INSERT INTO member (hashed_id) VALUES (${e(id)})`,
-      );
+      await connection.execute(`INSERT INTO member (id) VALUES (${e(id)})`);
       await connection.query('commit');
       return 'OK';
     } catch (error) {
@@ -278,10 +274,12 @@ export class Repository {
       );
 
       await connection.query('commit');
+      console.log('ok');
       return 'OK';
     } catch (error) {
       console.log(error);
       await connection.query('rollback');
+      console.log('fail');
       return 'FAIL';
     } finally {
       connection.release();

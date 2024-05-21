@@ -9,7 +9,7 @@ async function bootstrap() {
   app.use(cookieParser('secret'));
   app.enableCors({
     credentials: true,
-    origin: ['http://localhost:4173', 'https://everyslang.com'],
+    origin: ['http://localhost.com:4173', 'https://everyslang.com'],
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     allowedHeaders: [
       'Origin',

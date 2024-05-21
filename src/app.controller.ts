@@ -36,13 +36,11 @@ export class AppController {
    */
   @UseGuards(User)
   @Post('/registerMember')
-  async registerMember(
-    @Body() body,
-    @Req() req: Request,
-    @Res() res: Response,
-  ) {
+  async registerMember(@Body() body, @Req() req: Request) {
     const { name } = body;
-    return await this.appService.setNickname(name, req, res);
+    const a = await this.appService.setNickname(name, req);
+    console.log(a);
+    return a;
   }
 
   @Get('/login')

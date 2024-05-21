@@ -7,6 +7,7 @@ import { HttpModule } from '@nestjs/axios';
 import { LogIn } from './app.login';
 import { JwtModule } from '@nestjs/jwt';
 import { CustomJwt } from './app.jwt';
+import { CookieService } from './app.cookie';
 
 @Module({
   imports: [
@@ -17,6 +18,6 @@ import { CustomJwt } from './app.jwt';
     JwtModule.register({}),
   ],
   controllers: [AppController],
-  providers: [AppService, Repository, LogIn, CustomJwt],
+  providers: [AppService, Repository, LogIn, CustomJwt, CookieService],
 })
 export class AppModule {}

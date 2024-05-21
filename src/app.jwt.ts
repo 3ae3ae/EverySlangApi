@@ -14,7 +14,7 @@ export class CustomJwt extends JwtService {
     this.salt = this.config.get('HASH_SALT');
     this.signOption = {
       secret: this.config.get('JWT_SECRET'),
-      subject: this.config.get('THIS_DOMAIN'),
+      subject: this.config.get('THIS_URL'),
       audience: this.config.get('REDIRECT_URL'),
     };
     this.verifyOption = {

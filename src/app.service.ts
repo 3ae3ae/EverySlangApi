@@ -23,9 +23,11 @@ export class AppService {
     return await this.repository.checkNickname(name);
   }
 
-  async setNickname(name: string, req: Request, res: Response) {
+  async setNickname(name: string, req: Request) {
     const id: string = req['id'];
-    return await this.repository.setNickname(name, id);
+    const a = await this.repository.setNickname(name, id);
+    console.log(a);
+    return a;
   }
 
   async createWord(wordDto: WordDto) {
@@ -59,20 +61,28 @@ export class AppService {
     const refreshToken = await _refreshToken;
     const isMember = await _isMember;
 
-    res.setHeader('Authorization', accessToken);
+    const accessTokenCookie: Cookie = {
+      name: 'accessToken',
+      val: accessToken,
+      options: {
+        domain: this.config.get('COOKIE_DOMAIN'),
+        maxAge: 1000 * 60 * 60 * 1 - 10,
+        httpOnly: true,
+        signed: true,
+      },
+    };
 
     const refreshTokenCookie: Cookie = {
       name: 'refreshToken',
       val: refreshToken,
       options: {
-        domain: this.config.get('THIS_URL'),
+        domain: this.config.get('COOKIE_DOMAIN'),
         maxAge: 1000 * 60 * 60 * 24 * 100 - 10,
         httpOnly: true,
-        secure: true,
         signed: true,
       },
     };
-    this.coo.setCookie(res, [refreshTokenCookie]);
+    this.coo.setCookie(res, [accessTokenCookie, refreshTokenCookie]);
     if (isMember) {
       res.redirect(this.config.get('REDIRECT_URL'));
     } else {
