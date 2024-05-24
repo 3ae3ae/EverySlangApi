@@ -26,7 +26,6 @@ export class AppService {
   async setNickname(name: string, req: Request) {
     const id: string = req['id'];
     const a = await this.repository.setNickname(name, id);
-    console.log(a);
     return a;
   }
 

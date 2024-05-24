@@ -32,10 +32,7 @@ export class LogIn {
       },
     };
     const source = this.httpservice.post(url, data, _config);
-    console.log('get source');
-    console.log(source);
     const response = await lastValueFrom(source);
-    console.log('get response');
     return response.data;
   }
 

@@ -9,7 +9,7 @@ import { ConfigService } from '@nestjs/config';
 import { CustomJwt } from './app.jwt';
 import { TokenExpiredError } from '@nestjs/jwt';
 import { CookieService } from './app.cookie';
-import { Observable } from 'rxjs';
+import { Cookie } from './app.model';
 
 @Injectable()
 class Turnstile implements CanActivate {
@@ -43,38 +43,38 @@ class User implements CanActivate {
   async canActivate(context: ExecutionContext) {
     const req: Request = context.switchToHttp().getRequest();
     const res: Response = context.switchToHttp().getResponse();
-    console.log(this.coo.getCookie(req)['refreshToken']);
-    console.log(this.coo.getCookie(req)['accessToken']);
     const accessToken = this.coo.getCookie(req)['accessToken'];
     const refreshToken = this.coo.getCookie(req)['refreshToken'];
-    console.log(155);
     if (!accessToken || !refreshToken) {
-      console.log(accessToken);
-      console.log(166);
-      console.log(refreshToken);
       throw new UnauthorizedException('invalid token');
     }
     try {
       const accessTokenBody =
         await this.jwt.verifyCustomTokenAsync(accessToken);
-      console.log(177);
       req['id'] = accessTokenBody['id'];
       return true;
     } catch (error1) {
-      console.log(188);
-      console.log(error1);
       if (error1 instanceof TokenExpiredError) {
         try {
           const refreshTokenBody =
             await this.jwt.verifyCustomTokenAsync(refreshToken);
           const hashed_id = refreshTokenBody['id'];
           const newAccessToken = await this.jwt.makeAccessToken(hashed_id);
+          const newAccessTokenCookie: Cookie = {
+            name: 'accessToken',
+            val: newAccessToken,
+            options: {
+              domain: this.config.get('COOKIE_DOMAIN'),
+              maxAge: 1000 * 60 * 60 * 1 - 10,
+              httpOnly: true,
+              signed: true,
+            },
+          };
           req['id'] = hashed_id;
-          res.setHeader('Authorization', newAccessToken);
+
+          this.coo.setCookie(res, [newAccessTokenCookie]);
           return true;
         } catch (error2) {
-          console.log(999);
-          console.log(error2);
           if (error2 instanceof TokenExpiredError) {
             throw new UnauthorizedException('Token expired');
           } else {

@@ -39,7 +39,6 @@ export class AppController {
   async registerMember(@Body() body, @Req() req: Request) {
     const { name } = body;
     const a = await this.appService.setNickname(name, req);
-    console.log(a);
     return a;
   }
 
@@ -52,11 +51,8 @@ export class AppController {
     @Query('state') state,
   ) {
     if (error !== undefined) {
-      console.log('it is error');
-      console.log(error, ' ', error_description);
       return 'error';
     }
-    console.log('pass error test');
     this.appService.loginUser(code, state, res);
   }
 
@@ -86,7 +82,6 @@ export class AppController {
     @Req() req,
   ) {
     const a = await this.appService.getWords(keyword, page, req);
-    console.log(a);
     return a;
   }
 }
