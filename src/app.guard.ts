@@ -40,56 +40,14 @@ class User implements CanActivate {
     private readonly jwt: CustomJwt,
     private readonly coo: CookieService,
   ) {}
-  async canActivate(context: ExecutionContext) {
+  canActivate(context: ExecutionContext) {
     const req: Request = context.switchToHttp().getRequest();
     const res: Response = context.switchToHttp().getResponse();
-    const accessToken = this.coo.getCookie(req)['accessToken'];
-    const refreshToken = this.coo.getCookie(req)['refreshToken'];
-    if (!accessToken || !refreshToken) {
-      throw new UnauthorizedException('invalid token');
+    if (!req['id']) {
+      res.redirect(this.config.get('REDIRECT_URL') + '/needlogin.html');
+      return false;
     }
-    try {
-      const accessTokenBody =
-        await this.jwt.verifyCustomTokenAsync(accessToken);
-      req['id'] = accessTokenBody['id'];
-      return true;
-    } catch (error1) {
-      if (error1 instanceof TokenExpiredError) {
-        try {
-          const refreshTokenBody =
-            await this.jwt.verifyCustomTokenAsync(refreshToken);
-          const hashed_id = refreshTokenBody['id'];
-          const newAccessToken = await this.jwt.makeAccessToken(hashed_id);
-          const newAccessTokenCookie: Cookie = {
-            name: 'accessToken',
-            val: newAccessToken,
-            options: {
-              domain: this.config.get('COOKIE_DOMAIN'),
-              maxAge: 1000 * 60 * 60 * 1 - 10,
-              httpOnly: true,
-              signed: true,
-            },
-          };
-          req['id'] = hashed_id;
-
-          this.coo.setCookie(res, [newAccessTokenCookie]);
-          return true;
-        } catch (error2) {
-          if (error2 instanceof TokenExpiredError) {
-            throw new UnauthorizedException('Token expired');
-          } else {
-            throw new UnauthorizedException('Invalid Token');
-          }
-        }
-      } else {
-        throw new UnauthorizedException('Invalid Token');
-      }
-    }
-  }
-
-  parseToken(req: Request): string | false {
-    const [type, token] = req.headers['authorization'].split(' ') ?? ['', ''];
-    return type === 'Bearer' ? token : false;
+    return true;
   }
 }
 

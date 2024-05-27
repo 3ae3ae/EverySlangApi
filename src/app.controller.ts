@@ -26,6 +26,11 @@ export class AppController {
     return 'OK';
   }
 
+  @Get('/nickname')
+  getNickname(@Req() req: Request) {
+    return req['nickname'] ?? 'No Name';
+  }
+
   @Get('/validatenickname')
   async validatenickname(@Query('name') name) {
     return await this.appService.checkNickname(name);
@@ -36,10 +41,14 @@ export class AppController {
    */
   @UseGuards(User)
   @Post('/registerMember')
-  async registerMember(@Body() body, @Req() req: Request) {
+  async registerMember(
+    @Body() body,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
     const { name } = body;
-    const a = await this.appService.setNickname(name, req);
-    return a;
+    const a = await this.appService.setNickname(name, req, res);
+    res.json(a);
   }
 
   @Get('/login')
@@ -56,10 +65,14 @@ export class AppController {
     this.appService.loginUser(code, state, res);
   }
 
-  @UseGuards(Turnstile)
+  @UseGuards(Turnstile, User)
   @Post('/create')
-  async createWord(@Res() res: Response, @Body() wordDto: WordDto) {
-    const uri = await this.appService.createWord(wordDto);
+  async createWord(
+    @Req() req: Request,
+    @Res() res: Response,
+    @Body() wordDto: WordDto,
+  ) {
+    const uri = await this.appService.createWord(wordDto, req);
     res.redirect(uri);
   }
 
@@ -81,6 +94,8 @@ export class AppController {
     @Query('page') page: number,
     @Req() req,
   ) {
+    console.log(keyword);
+    console.log(page);
     const a = await this.appService.getWords(keyword, page, req);
     return a;
   }

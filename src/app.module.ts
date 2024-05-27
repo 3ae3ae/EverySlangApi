@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, NestModule, MiddlewareConsumer, Logger } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { Repository } from './app.repository';
@@ -8,6 +8,7 @@ import { LogIn } from './app.login';
 import { JwtModule } from '@nestjs/jwt';
 import { CustomJwt } from './app.jwt';
 import { CookieService } from './app.cookie';
+import { LoggerMiddleware, InjectIDMiddleware } from './app.middleware';
 
 @Module({
   imports: [
@@ -20,4 +21,8 @@ import { CookieService } from './app.cookie';
   controllers: [AppController],
   providers: [AppService, Repository, LogIn, CustomJwt, CookieService],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(LoggerMiddleware, InjectIDMiddleware).forRoutes('*');
+  }
+}

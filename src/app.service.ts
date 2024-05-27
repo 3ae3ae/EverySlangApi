@@ -23,14 +23,25 @@ export class AppService {
     return await this.repository.checkNickname(name);
   }
 
-  async setNickname(name: string, req: Request) {
+  async setNickname(name: string, req: Request, res: Response) {
     const id: string = req['id'];
+    const nicknameCookie: Cookie = {
+      name: 'nickname',
+      val: name,
+      options: {
+        domain: this.config.get('COOKIE_DOMAIN'),
+        httpOnly: true,
+        signed: true,
+      },
+    };
+    this.coo.setCookie(res, [nicknameCookie]);
     const a = await this.repository.setNickname(name, id);
     return a;
   }
 
-  async createWord(wordDto: WordDto) {
-    return this.repository.createWord(wordDto);
+  async createWord(wordDto: WordDto, req: Request) {
+    const member_id = req['id'];
+    return this.repository.createWord(wordDto, member_id);
   }
 
   async voteWord(voteDto: VoteDto) {
@@ -59,7 +70,6 @@ export class AppService {
     const accessToken = await _accessToken;
     const refreshToken = await _refreshToken;
     const isMember = await _isMember;
-
     const accessTokenCookie: Cookie = {
       name: 'accessToken',
       val: accessToken,
@@ -83,6 +93,17 @@ export class AppService {
     };
     this.coo.setCookie(res, [accessTokenCookie, refreshTokenCookie]);
     if (isMember) {
+      const nickname = await this.login.getNickname(hashedId);
+      const nicknameCookie: Cookie = {
+        name: 'nickname',
+        val: nickname,
+        options: {
+          domain: this.config.get('COOKIE_DOMAIN'),
+          httpOnly: true,
+          signed: true,
+        },
+      };
+      this.coo.setCookie(res, [nicknameCookie]);
       res.redirect(this.config.get('REDIRECT_URL'));
     } else {
       this.login.registerMember(hashedId);

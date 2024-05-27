@@ -10,6 +10,7 @@ export interface VoteDto {
   word_id: number;
   ip?: string;
   vote: 'like' | 'dislike';
+  member_id?: string;
 }
 
 export interface KakaoToken {
@@ -24,9 +25,6 @@ export interface JwtToken {
   aud?: string;
   sub?: string;
   id?: string;
-}
-
-export interface Member extends KakaoToken {
   nickname?: string;
 }
 

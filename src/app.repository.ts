@@ -30,7 +30,7 @@ export class Repository {
     }
   }
 
-  async createWord(wordDto: WordDto) {
+  async createWord(wordDto: WordDto, member_id: string) {
     const { word, meaning } = wordDto;
     const connection = await this.pool.getConnection();
     const e = (a) => connection.escape(a);
@@ -42,7 +42,7 @@ export class Repository {
       if (n === 0) {
         await connection.query('start transaction');
         const result = await connection.execute(
-          `INSERT INTO words (word, meaning) VALUES (${e(word)}, ${e(meaning)})`,
+          `INSERT INTO words (word, meaning, member_id) VALUES (${e(word)}, ${e(meaning)}, ${e(member_id)})`,
         );
         const [id] = await connection.execute(`SELECT LAST_INSERT_ID() as id`);
         const result2 = await connection.execute(
@@ -145,11 +145,15 @@ export class Repository {
     v.like_amount,
     v.dislike_amount,
     COALESCE(i.isLike, -1) as isLike,
-    w.word_id
+    w.word_id,
+    w.member_id,
+    m.nickname
     FROM 
         words AS w
     INNER JOIN 
         vote AS v ON w.word_id = v.word_id
+    LEFT JOIN
+        member AS m ON w.member_id = m.member_id
     LEFT JOIN 
         ip AS i ON w.word_id = i.word_id AND i.ip = ${e(ip)}
     WHERE 
@@ -167,6 +171,7 @@ export class Repository {
       const [ret] = result;
       return JSON.stringify(ret);
     } catch (error) {
+      console.log(error);
     } finally {
       connection.release();
     }
@@ -263,6 +268,7 @@ export class Repository {
       await connection.query('commit');
       return 'OK';
     } catch (error) {
+      console.log(error);
       await connection.query('rollback');
       return 'FAIL';
     } finally {
