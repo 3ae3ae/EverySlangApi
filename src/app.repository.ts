@@ -2,6 +2,7 @@ import * as mysql from 'mysql2/promise';
 import { Injectable } from '@nestjs/common';
 import { VoteDto, WordDto } from './app.model';
 import { ConfigService } from '@nestjs/config';
+import { KakaoToken } from './app.model';
 
 @Injectable()
 export class Repository {
@@ -15,7 +16,21 @@ export class Repository {
     });
   }
 
-  async createWord(wordDto: WordDto) {
+  async getNickname(id: string) {
+    const connection = await this.pool.getConnection();
+    const e = (a) => connection.escape(a);
+    try {
+      const [result] = await connection.execute(
+        `SELECT nickname FROM member WHERE member_id = ${e(id)}`,
+      );
+      return result[0]['nickname'];
+    } catch (error) {
+    } finally {
+      connection.release();
+    }
+  }
+
+  async createWord(wordDto: WordDto, member_id: string) {
     const { word, meaning } = wordDto;
     const connection = await this.pool.getConnection();
     const e = (a) => connection.escape(a);
@@ -27,7 +42,7 @@ export class Repository {
       if (n === 0) {
         await connection.query('start transaction');
         const result = await connection.execute(
-          `INSERT INTO words (word, meaning) VALUES (${e(word)}, ${e(meaning)})`,
+          `INSERT INTO words (word, meaning, member_id) VALUES (${e(word)}, ${e(meaning)}, ${e(member_id)})`,
         );
         const [id] = await connection.execute(`SELECT LAST_INSERT_ID() as id`);
         const result2 = await connection.execute(
@@ -36,7 +51,6 @@ export class Repository {
         await connection.query('commit');
       }
     } catch (error) {
-      console.log(error);
       await connection.query('rollback');
     } finally {
       connection.release();
@@ -79,9 +93,7 @@ export class Repository {
       await connection.execute(
         `update vote set priority = like_amount - dislike_amount where word_id='${e(word_id)}'`,
       );
-    } catch (error) {
-      console.log(error);
-    }
+    } catch (error) {}
   }
 
   async voteWord(voteDto: VoteDto) {
@@ -103,7 +115,6 @@ export class Repository {
       return 'OK';
     } catch (err) {
       await connection.query('rollback');
-      console.log(err);
       return 'fail';
     } finally {
       connection.release();
@@ -117,7 +128,6 @@ export class Repository {
       await this.resetVote(word_id, ip, connection);
       return 'OK';
     } catch (err) {
-      console.log(err);
       return 'fail';
     } finally {
       connection.release();
@@ -135,11 +145,15 @@ export class Repository {
     v.like_amount,
     v.dislike_amount,
     COALESCE(i.isLike, -1) as isLike,
-    w.word_id
+    w.word_id,
+    w.member_id,
+    m.nickname
     FROM 
         words AS w
     INNER JOIN 
         vote AS v ON w.word_id = v.word_id
+    LEFT JOIN
+        member AS m ON w.member_id = m.member_id
     LEFT JOIN 
         ip AS i ON w.word_id = i.word_id AND i.ip = ${e(ip)}
     WHERE 
@@ -177,7 +191,86 @@ export class Repository {
         `DELETE FROM words WHERE words.word_id = ${e(word_id)}`,
       );
     } catch (error) {
+    } finally {
+      connection.release();
+    }
+  }
+
+  async isMember(id: string) {
+    const e = (a) => connection.escape(a);
+    const connection = await this.pool.getConnection();
+    try {
+      await connection.query('start transaction');
+      const result = await connection.execute(
+        `SELECT member_id FROM member WHERE member_id = ${e(id)}`,
+      );
+      const [ret] = result;
+      await connection.query('commit');
+      if (JSON.parse(JSON.stringify(ret)).length === 0) return false;
+      return true;
+    } catch (error) {
+      await connection.query('rollback');
+      return false;
+    } finally {
+      await connection.release();
+    }
+  }
+
+  async checkNickname(name: string) {
+    const connection = await this.pool.getConnection();
+    const e = (a) => connection.escape(a);
+    try {
+      const [result] = await connection.execute(
+        `SELECT nickname FROM member WHERE nickname = ${e(name)}`,
+      );
+      if (JSON.parse(JSON.stringify(result)).length === 0) return true;
+      else return false;
+    } catch (error) {
+      return false;
+    } finally {
+      connection.release();
+    }
+  }
+
+  async registerMember(id: string) {
+    const e = (a) => connection.escape(a);
+    const connection = await this.pool.getConnection();
+    try {
+      await connection.query('start transaction');
+      await connection.execute(
+        `INSERT INTO member (member_id) VALUES (${e(id)})`,
+      );
+      await connection.query('commit');
+      return 'OK';
+    } catch (error) {
+      await connection.query('rollback');
+      return 'FAIL';
+    } finally {
+      connection.release();
+    }
+  }
+
+  async setNickname(name: string, id: string) {
+    const e = (a) => connection.escape(a);
+    const connection = await this.pool.getConnection();
+    try {
+      await connection.query('start transaction');
+      const result = await connection.execute(
+        `SELECT * from member where member_id = ${e(id)}`,
+      );
+      const [ret] = result;
+      if (JSON.parse(JSON.stringify(ret)).length !== 1) throw new Error();
+
+      await connection.execute(
+        `UPDATE member SET nickname = ${e(name)} WHERE member_id = ${e(id)}`,
+      );
+
+      await connection.query('commit');
+      return 'OK';
+    } catch (error) {
       console.log(error);
+      await connection.query('rollback');
+      return 'FAIL';
     } finally {
       connection.release();
     }
