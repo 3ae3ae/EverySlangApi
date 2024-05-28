@@ -202,11 +202,12 @@ export class Repository {
     try {
       await connection.query('start transaction');
       const result = await connection.execute(
-        `SELECT member_id FROM member WHERE member_id = ${e(id)}`,
+        `SELECT nickname FROM member WHERE member_id = ${e(id)}`,
       );
       const [ret] = result;
       await connection.query('commit');
-      if (JSON.parse(JSON.stringify(ret)).length === 0) return false;
+      console.log(JSON.parse(JSON.stringify(ret))[0]['nickname']);
+      if (JSON.parse(JSON.stringify(ret))[0]['nickname'] === null) return false;
       return true;
     } catch (error) {
       await connection.query('rollback');
