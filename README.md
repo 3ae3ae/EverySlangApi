@@ -30,8 +30,8 @@ EverySlangApi는 [EverySlang](https://github.com/3ae3ae/EverySlang) 프로젝트
 #### Docker
 
 ```
-docker image pull 3ae3ae/everyslang-api-server:latest
-docker container run -d -e DATABASE_USER=${{ DATABASE_USER }} -e DATABASE_HOST=${{ DATABASE_HOST }} -e DATABASE_NAME=${{ DATABASE_NAME }} -e DATABASE_PASSWORD=${{ DATABASE_PASSWORD }} -p 80:3000 3ae3ae/everyslang-api-server:latest
+sudo docker image pull ${{ DOCKER_HUB_USERNAME }}/everyslang-api-server:latest
+sudo docker container run -d -e REDIRECT_URL=https://everyslang.com -e DATABASE_USER=${{ DATABASE_USER }} -e DATABASE_HOST=${{ DATABASE_HOST }} -e DATABASE_NAME=${{ DATABASE_NAME }} -e DATABASE_PASSWORD=${{ DATABASE_PASSWORD }} -e SECRET_KEY=${{ TURNSTILE_SECRET }} -e THIS_URL=https://api.everyslang.com -e COOKIE_DOMAIN=everyslang.com -e KAKAO_APP_KEY=${{KAKAO_APP_KEY}} -e KAKAO_CLIENT_SECRET=${{ KAKAO_CLIENT_SECRET }} -e HASH_SALT=${{HASH_SALT}} -e JWT_SECRET=${{JWT_SECRET}} -p 80:3000 ${{ DOCKER_HUB_USERNAME }}/everyslang-api-server:latest
 ```
 
 #### Local
@@ -57,6 +57,13 @@ DATABASE_HOST=<Your database host name>
 DATABASE_NAME=<Your database name>
 DATABASE_PASSWORD=<Your databse passwsord>
 SECRET_KEY=<Your Turnstile secret key>
+REDIRECT_URL=<Your Client URL>
+KAKAO_APP_KEY=<Your Kakao login app key>
+THIS_URL=<Your server url>
+KAKAO_CLIENT_SECRET=<Your Kakao client secret key>
+HASH_SALT=<Your hash salt for SHA256>
+JWT_SECRET=<Your JWT SECRET>
+COOKIE_DOMAIN=<Your top-level domain>
 
 ```
 
@@ -68,12 +75,17 @@ npm run start:dev
 
 ## 🎈 Usage <a name="usage"></a>
 
-| REST API    | Method | Description                        | Request                                                  | Response                                                                                                      | Param                       |
-| ----------- | ------ | ---------------------------------- | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | --------------------------- |
-| /create     | Post   | 데이터베이스에 단어 추가           | { word: string, meaning: string}                         |
-| /vote       | Put    | 데이터베이스에 좋아요, 싫어요 전송 | {word_id: number, ip: string, vote: 'like' \| 'dislike'} |
-| /removevote | Put    | 좋아요, 싫어요 취소                | {word_id: number, ip: string, vote: 'like' \| 'dislike'} |
-| /search     | Get    | 단어 검색                          |                                                          | [{word:string, meaning: string, like_amount:number, dislike_amount:number, isLike:number, word_id:number}...] | keyword:string, page:number |
+| REST API          | Method | Description                        | Request                                                  | Response                                                                                                      | Param                       |
+| ----------------- | ------ | ---------------------------------- | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | --------------------------- | --------------------------------------------------------------------- |
+| /create           | Post   | 데이터베이스에 단어 추가           | { word: string, meaning: string}                         |
+| /vote             | Put    | 데이터베이스에 좋아요, 싫어요 전송 | {word_id: number, ip: string, vote: 'like' \| 'dislike'} |
+| /removevote       | Put    | 좋아요, 싫어요 취소                | {word_id: number, ip: string, vote: 'like' \| 'dislike'} |
+| /search           | Get    | 단어 검색                          |                                                          | [{word:string, meaning: string, like_amount:number, dislike_amount:number, isLike:number, word_id:number}...] | keyword:string, page:number |
+| /                 | Get    | 서버 상태 확인                     |                                                          | OK                                                                                                            |
+| /nickname         | Get    | 로그인한 사용자의 닉네임 반환      |                                                          | { nickname \| "No Name"}                                                                                      |
+| /validatenickname | Get    | 닉네임 유효성 검사                 |                                                          | { true \| false}                                                                                              |                             | name: string                                                          |
+| /login            | Get    | 카카오 로그인 토큰 발급            |                                                          | 닉네임 페이지로 리다이렉트                                                                                    |                             | code: string, state: string, error: string, error_description: string |
+| /registermember   | Post   | 회원 등록                          | {name: string}                                           | { "OK" \| "FAIL"}                                                                                             |
 
 ## ⛏️ Built Using <a name = "built_using"></a>
 
