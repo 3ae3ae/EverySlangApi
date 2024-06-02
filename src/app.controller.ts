@@ -26,6 +26,11 @@ export class AppController {
     return 'OK';
   }
 
+  @Get('/profile')
+  async getProfile(@Req() req) {
+    return await this.appService.getProfile(req);
+  }
+
   @Get('/nickname')
   getNickname(@Req() req: Request) {
     return req['nickname'] ?? 'No Name';

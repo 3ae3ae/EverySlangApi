@@ -23,6 +23,11 @@ export class AppService {
     return await this.repository.checkNickname(name);
   }
 
+  async getProfile(req: Request) {
+    const id = req['id'];
+    return this.repository.getProfile(id);
+  }
+
   async setNickname(name: string, req: Request, res: Response) {
     const id: string = req['id'];
     const nicknameCookie: Cookie = {

@@ -45,7 +45,6 @@ export class CustomJwt extends JwtService {
     const accessToken = this.coo.getCookie(req)['accessToken'];
     const refreshToken = this.coo.getCookie(req)['refreshToken'];
     const nickname = this.coo.getCookie(req)['nickname'];
-    const c = this.coo.getCookie(req);
     if (!refreshToken) return false;
     try {
       const accessTokenBody = await this.verifyCustomTokenAsync(accessToken);

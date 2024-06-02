@@ -16,6 +16,24 @@ export class Repository {
     });
   }
 
+  async getProfile(id: string) {
+    const connection = await this.pool.getConnection();
+    const e = (a) => connection.escape(a);
+    try {
+      const [result] = await connection.execute(
+        `SELECT message, like, dislike, words
+        FROM profile
+        WHERE member_id = ${e(id)}`,
+      );
+      const ret = result[0];
+      return ret;
+    } catch (e) {
+      console.log(e);
+    } finally {
+      connection.release();
+    }
+  }
+
   async getNickname(id: string) {
     const connection = await this.pool.getConnection();
     const e = (a) => connection.escape(a);
