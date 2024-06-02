@@ -19,14 +19,12 @@ export class Repository {
   async getProfile(id: string) {
     const connection = await this.pool.getConnection();
     const e = (a) => connection.escape(a);
+    const select = (query: string) => this._select(connection, query);
     try {
-      const [result] = await connection.execute(
-        `SELECT message, like, dislike, words
+      const result = await select(`SELECT message, like, dislike, words
         FROM profile
-        WHERE member_id = ${e(id)}`,
-      );
-      const ret = result[0];
-      return ret;
+        WHERE member_id = ${e(id)}`);
+      return result;
     } catch (e) {
       console.log(e);
     } finally {
@@ -37,11 +35,12 @@ export class Repository {
   async getNickname(id: string) {
     const connection = await this.pool.getConnection();
     const e = (a) => connection.escape(a);
+    const select = (query: string) => this._select(connection, query);
     try {
-      const [result] = await connection.execute(
+      const result = await select(
         `SELECT nickname FROM member WHERE member_id = ${e(id)}`,
       );
-      return result[0]['nickname'];
+      return result['nickname'];
     } catch (error) {
     } finally {
       connection.release();
@@ -51,16 +50,28 @@ export class Repository {
   async createWord(wordDto: WordDto, member_id: string) {
     const { word, meaning } = wordDto;
     const connection = await this.pool.getConnection();
+    const select = (query: string) => this._select(connection, query);
+
     const e = (a) => connection.escape(a);
     try {
-      const [rows] = await connection.execute(`SELECT COUNT(word_id) AS n
+      const rows = await select(`SELECT COUNT(word_id) AS n
       FROM words
       WHERE word=${e(word)} AND meaning=${e(meaning)}`);
-      const n = rows[0]['n'];
+      const n = rows['n'];
       if (n === 0) {
         await connection.query('start transaction');
         const result = await connection.execute(
           `INSERT INTO words (word, meaning, member_id) VALUES (${e(word)}, ${e(meaning)}, ${e(member_id)})`,
+        );
+        const words = await select(
+          `SELECT words FROM profile WHERE member_id = ${e(member_id)}`,
+        );
+        const new_words = JSON.stringify({
+          ...words,
+          word,
+        });
+        await connection.execute(
+          `UPDATE profile SET words = ${e(new_words)} WHERE member_id = ${e(member_id)}`,
         );
         const [id] = await connection.execute(`SELECT LAST_INSERT_ID() as id`);
         const result2 = await connection.execute(
@@ -82,6 +93,8 @@ export class Repository {
     connection: mysql.PoolConnection,
   ) {
     try {
+      const select = (query: string) => this._select(connection, query);
+
       const e = (a) => connection.escape(a);
       const ei = (a) => connection.escapeId(a);
       await connection.query('start transaction');
@@ -95,6 +108,12 @@ export class Repository {
       );
       await connection.execute(
         `UPDATE vote SET ${ei(`${like}_amount`)} = ${ei(`${like}_amount`)} - 1 WHERE word_id=${e(word_id)}`,
+      );
+      const member_id = await select(
+        `SELECT member_id FROM words WHERE word_id = ${e(word_id)}`,
+      );
+      await connection.execute(
+        `UPDATE profile SET ${ei(like)} = ${ei(like)} - 1 WHERE member_id = ${e(member_id)}`,
       );
       await this.setPriority(word_id, connection);
       await connection.query('commit');
@@ -119,14 +138,24 @@ export class Repository {
     const connection = await this.pool.getConnection();
     const e = (a) => connection.escape(a);
     const ei = (a) => connection.escapeId(a);
+    const select = (query: string) => this._select(connection, query);
+
     try {
       await connection.query('start transaction');
       await this.resetVote(word_id, ip, connection);
       const updateResult = await connection.execute(
         `UPDATE vote SET ${ei(`${vote}_amount`)} = ${ei(`${vote}_amount`)} + 1 WHERE word_id = ${e(word_id)}`,
       );
+      const member_id = await select(
+        `SELECT member_id FROM words WHERE word_id = ${e(word_id)}`,
+      );
+
       const insertResult = await connection.execute(
         `INSERT INTO ip (word_id, ip, isLike) VALUES (${e(word_id)}, ${e(ip)}, ${e(vote === 'like' ? 1 : 0)})`,
+      );
+
+      await connection.execute(
+        `UPDATE profile SET ${ei(vote)} = ${ei(vote)} + 1 WHERE member_id = ${e(member_id)}`,
       );
       await this.setPriority(word_id, connection);
       await connection.query('commit');
@@ -195,10 +224,41 @@ export class Repository {
     }
   }
 
-  async removeWord(word_id: number) {
-    const connection = await this.pool.getConnection();
+  async _select(connection: mysql.PoolConnection, query: string) {
     const e = (a) => connection.escape(a);
     try {
+      const [_result] = await connection.execute(query);
+      const result = _result[0];
+      return result;
+    } catch (e) {
+      console.log(e);
+    }
+  }
+
+  async removeWord(word_id: number) {
+    const connection = await this.pool.getConnection();
+    const select = (query: string) => this._select(connection, query);
+    const e = (a) => connection.escape(a);
+    try {
+      const word = await select(
+        `SELECT word FROM words WHERE word_id = ${e(word_id)}`,
+      );
+      const member_id = await select(
+        `SELECT member_id FROM words WHERE word_id = ${e(word_id)}`,
+      );
+      const words = await select(
+        `SELECT words FROM profile WHERE member_id = ${e(member_id)}`,
+      );
+      const new_words = [...words].filter((w) => w !== word);
+      const vote = await select(
+        `SELECT like_amount, dislike_amount FROM vote WHERE word_id = ${e(word_id)}`,
+      );
+      await connection.execute(
+        `UPDATE profile SET words = ${e(new_words)}, like = like - ${e(vote['like_amount'])}, dislike = dislike - ${e(vote['dislike_amount'])} WHERE member_id = ${e(member_id)}`,
+      );
+      await connection.execute(
+        `UPDATE profile SET words = ${e(new_words)} WHERE member_id = ${e(member_id)}`,
+      );
       await connection.execute(
         `DELETE FROM ip WHERE ip.word_id = ${e(word_id)}`,
       );
