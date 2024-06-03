@@ -7,7 +7,6 @@ import { CookieService } from './app.cookie';
 export class LoggerMiddleware implements NestMiddleware {
   use(req: Request, res: Response, next: NextFunction) {
     const r = req.body;
-    console.log('---');
     for (const e of Object.entries(r)) {
       // console.log(e[0], ':', e[1]);
     }

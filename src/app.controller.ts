@@ -8,6 +8,7 @@ import {
   Req,
   Res,
   UseGuards,
+  Param,
 } from '@nestjs/common';
 import { AppService } from './app.service';
 import { WordDto, VoteDto } from './app.model';
@@ -26,9 +27,10 @@ export class AppController {
     return 'OK';
   }
 
-  @Get('/profile')
-  async getProfile(@Req() req) {
-    return await this.appService.getProfile(req);
+  @Get('/profile/:id')
+  async getProfile(@Req() req, @Res() res, @Param('id') id) {
+    if (!id) res.redirect('/profile/' + req['id']);
+    else res.json(await this.appService.getProfile(id));
   }
 
   @Get('/nickname')

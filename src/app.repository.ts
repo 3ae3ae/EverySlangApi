@@ -19,14 +19,16 @@ export class Repository {
   async getProfile(id: string) {
     const connection = await this.pool.getConnection();
     const e = (a) => connection.escape(a);
+    const ei = (a) => connection.escapeId(a);
+
     const select = (query: string) => this._select(connection, query);
     try {
-      const result = await select(`SELECT message, like, dislike, words
+      const result = await select(`SELECT ${ei('like')}, dislike, words
         FROM profile
         WHERE member_id = ${e(id)}`);
       return result;
     } catch (e) {
-      console.log(e);
+      console.error(e);
     } finally {
       connection.release();
     }
@@ -42,6 +44,7 @@ export class Repository {
       );
       return result['nickname'];
     } catch (error) {
+      console.error(error);
     } finally {
       connection.release();
     }
@@ -63,12 +66,12 @@ export class Repository {
         const result = await connection.execute(
           `INSERT INTO words (word, meaning, member_id) VALUES (${e(word)}, ${e(meaning)}, ${e(member_id)})`,
         );
-        const words = await select(
+        const w = await select(
           `SELECT words FROM profile WHERE member_id = ${e(member_id)}`,
         );
+        const words = JSON.parse(w['words'])['words'] as string[];
         const new_words = JSON.stringify({
-          ...words,
-          word,
+          words: [...words, word],
         });
         await connection.execute(
           `UPDATE profile SET words = ${e(new_words)} WHERE member_id = ${e(member_id)}`,
@@ -80,6 +83,7 @@ export class Repository {
         await connection.query('commit');
       }
     } catch (error) {
+      console.error(error);
       await connection.query('rollback');
     } finally {
       connection.release();
@@ -92,11 +96,10 @@ export class Repository {
     ip: string,
     connection: mysql.PoolConnection,
   ) {
+    const select = (query: string) => this._select(connection, query);
+    const e = (a) => connection.escape(a);
+    const ei = (a) => connection.escapeId(a);
     try {
-      const select = (query: string) => this._select(connection, query);
-
-      const e = (a) => connection.escape(a);
-      const ei = (a) => connection.escapeId(a);
       await connection.query('start transaction');
       const [result] = await connection.execute(
         `SELECT word_id, isLike FROM ip WHERE ip=${e(ip)} AND word_id=${e(word_id)}`,
@@ -109,7 +112,7 @@ export class Repository {
       await connection.execute(
         `UPDATE vote SET ${ei(`${like}_amount`)} = ${ei(`${like}_amount`)} - 1 WHERE word_id=${e(word_id)}`,
       );
-      const member_id = await select(
+      const { member_id } = await select(
         `SELECT member_id FROM words WHERE word_id = ${e(word_id)}`,
       );
       await connection.execute(
@@ -119,6 +122,7 @@ export class Repository {
       await connection.query('commit');
       return 'OK';
     } catch (error) {
+      console.error(error);
       await connection.query('rollback');
     }
   }
@@ -130,7 +134,9 @@ export class Repository {
       await connection.execute(
         `update vote set priority = like_amount - dislike_amount where word_id='${e(word_id)}'`,
       );
-    } catch (error) {}
+    } catch (error) {
+      console.error(error);
+    }
   }
 
   async voteWord(voteDto: VoteDto) {
@@ -143,14 +149,14 @@ export class Repository {
     try {
       await connection.query('start transaction');
       await this.resetVote(word_id, ip, connection);
-      const updateResult = await connection.execute(
+      await connection.execute(
         `UPDATE vote SET ${ei(`${vote}_amount`)} = ${ei(`${vote}_amount`)} + 1 WHERE word_id = ${e(word_id)}`,
       );
-      const member_id = await select(
+      const { member_id } = await select(
         `SELECT member_id FROM words WHERE word_id = ${e(word_id)}`,
       );
 
-      const insertResult = await connection.execute(
+      await connection.execute(
         `INSERT INTO ip (word_id, ip, isLike) VALUES (${e(word_id)}, ${e(ip)}, ${e(vote === 'like' ? 1 : 0)})`,
       );
 
@@ -161,6 +167,7 @@ export class Repository {
       await connection.query('commit');
       return 'OK';
     } catch (err) {
+      console.error(err);
       await connection.query('rollback');
       return 'fail';
     } finally {
@@ -175,6 +182,7 @@ export class Repository {
       await this.resetVote(word_id, ip, connection);
       return 'OK';
     } catch (err) {
+      console.error(err);
       return 'fail';
     } finally {
       connection.release();
@@ -218,7 +226,7 @@ export class Repository {
       const [ret] = result;
       return JSON.stringify(ret);
     } catch (error) {
-      console.log(error);
+      console.error(error);
     } finally {
       connection.release();
     }
@@ -231,7 +239,7 @@ export class Repository {
       const result = _result[0];
       return result;
     } catch (e) {
-      console.log(e);
+      console.error(e);
     }
   }
 
@@ -239,22 +247,28 @@ export class Repository {
     const connection = await this.pool.getConnection();
     const select = (query: string) => this._select(connection, query);
     const e = (a) => connection.escape(a);
+    const ei = (a) => connection.escapeId(a);
+
     try {
-      const word = await select(
+      const { word } = await select(
         `SELECT word FROM words WHERE word_id = ${e(word_id)}`,
       );
-      const member_id = await select(
+      const { member_id } = await select(
         `SELECT member_id FROM words WHERE word_id = ${e(word_id)}`,
       );
-      const words = await select(
+      const w = await select(
         `SELECT words FROM profile WHERE member_id = ${e(member_id)}`,
       );
-      const new_words = [...words].filter((w) => w !== word);
-      const vote = await select(
+      const words = JSON.parse(w['words'])['words'] as string[];
+
+      const new_words = JSON.stringify({
+        words: words.filter((w) => w !== word),
+      });
+      const { vote } = await select(
         `SELECT like_amount, dislike_amount FROM vote WHERE word_id = ${e(word_id)}`,
       );
       await connection.execute(
-        `UPDATE profile SET words = ${e(new_words)}, like = like - ${e(vote['like_amount'])}, dislike = dislike - ${e(vote['dislike_amount'])} WHERE member_id = ${e(member_id)}`,
+        `UPDATE profile SET words = ${e(new_words)},${ei('like')} =${ei('like')} - ${e(vote['like_amount'])}, dislike = dislike - ${e(vote['dislike_amount'])} WHERE member_id = ${e(member_id)}`,
       );
       await connection.execute(
         `UPDATE profile SET words = ${e(new_words)} WHERE member_id = ${e(member_id)}`,
@@ -269,26 +283,24 @@ export class Repository {
         `DELETE FROM words WHERE words.word_id = ${e(word_id)}`,
       );
     } catch (error) {
+      console.error(error);
     } finally {
       connection.release();
     }
   }
 
   async isMember(id: string) {
-    const e = (a) => connection.escape(a);
     const connection = await this.pool.getConnection();
+    const e = (a) => connection.escape(a);
+    const select = (query: string) => this._select(connection, query);
     try {
-      await connection.query('start transaction');
-      const result = await connection.execute(
+      const result = await select(
         `SELECT nickname FROM member WHERE member_id = ${e(id)}`,
       );
-      const [ret] = result;
-      await connection.query('commit');
-      console.log(JSON.parse(JSON.stringify(ret))[0]['nickname']);
-      if (JSON.parse(JSON.stringify(ret))[0]['nickname'] === null) return false;
+      if (!result['nickname']) return false;
       return true;
     } catch (error) {
-      await connection.query('rollback');
+      console.error(error);
       return false;
     } finally {
       await connection.release();
@@ -305,6 +317,7 @@ export class Repository {
       if (JSON.parse(JSON.stringify(result)).length === 0) return true;
       else return false;
     } catch (error) {
+      console.error(error);
       return false;
     } finally {
       connection.release();
@@ -312,16 +325,21 @@ export class Repository {
   }
 
   async registerMember(id: string) {
-    const e = (a) => connection.escape(a);
     const connection = await this.pool.getConnection();
+    const e = (a) => connection.escape(a);
+    const ei = (a) => connection.escapeId(a);
     try {
       await connection.query('start transaction');
       await connection.execute(
         `INSERT INTO member (member_id) VALUES (${e(id)})`,
       );
+      await connection.query(
+        `INSERT INTO profile (member_id, words, ${ei('like')}, ${ei('dislike')}) VALUES (${e(id)}, '{"words": []}', 0, 0)`,
+      );
       await connection.query('commit');
       return 'OK';
     } catch (error) {
+      console.error(error);
       await connection.query('rollback');
       return 'FAIL';
     } finally {
@@ -330,8 +348,8 @@ export class Repository {
   }
 
   async setNickname(name: string, id: string) {
-    const e = (a) => connection.escape(a);
     const connection = await this.pool.getConnection();
+    const e = (a) => connection.escape(a);
     try {
       await connection.query('start transaction');
       const result = await connection.execute(
@@ -347,7 +365,7 @@ export class Repository {
       await connection.query('commit');
       return 'OK';
     } catch (error) {
-      console.log(error);
+      console.error(error);
       await connection.query('rollback');
       return 'FAIL';
     } finally {

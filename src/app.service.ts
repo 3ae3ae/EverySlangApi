@@ -23,8 +23,7 @@ export class AppService {
     return await this.repository.checkNickname(name);
   }
 
-  async getProfile(req: Request) {
-    const id = req['id'];
+  async getProfile(id: string) {
     return this.repository.getProfile(id);
   }
 
