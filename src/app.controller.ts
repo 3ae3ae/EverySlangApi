@@ -27,10 +27,10 @@ export class AppController {
     return 'OK';
   }
 
-  @Get('/profile/:id')
-  async getProfile(@Req() req, @Res() res, @Param('id') id) {
-    if (!id) res.redirect('/profile/' + req['id']);
-    else res.json(await this.appService.getProfile(id));
+  @Get('/profile/:nickname')
+  async getProfile(@Req() req, @Res() res, @Param('nickname') nickname) {
+    if (!nickname) res.redirect('/profile/' + req['nickname']);
+    else res.json(await this.appService.getProfile(nickname));
   }
 
   @Get('/nickname')
@@ -101,9 +101,15 @@ export class AppController {
     @Query('page') page: number,
     @Req() req,
   ) {
-    console.log(keyword);
-    console.log(page);
     const a = await this.appService.getWords(keyword, page, req);
     return a;
+  }
+
+  @UseGuards(User)
+  @Get('/removeword/:id')
+  async removeWord(@Param('id') word_id, @Req() req) {
+    return (await this.appService.removeWord(Number(word_id), req))
+      ? 'OK'
+      : 'FAIL';
   }
 }

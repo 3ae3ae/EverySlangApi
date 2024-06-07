@@ -23,8 +23,17 @@ export class AppService {
     return await this.repository.checkNickname(name);
   }
 
-  async getProfile(id: string) {
-    return this.repository.getProfile(id);
+  async getProfile(nickname: string) {
+    return this.repository.getProfile(nickname);
+  }
+
+  async removeWord(word_id: number, req: Request) {
+    const member_id = await this.repository.getMemberID(word_id);
+    console.log('1');
+    if (member_id === 'NULL') return false;
+    if (member_id !== req['id']) return false;
+    console.log(2);
+    return await this.repository.removeWord(word_id);
   }
 
   async setNickname(name: string, req: Request, res: Response) {
@@ -58,7 +67,9 @@ export class AppService {
 
   async getWords(keyword: string, page: number, req: Request): Promise<string> {
     const ip = req.header('CF-Connecting-IP');
-    return this.repository.getWords(keyword, page, ip);
+    const id = req['id'];
+    const nickname = req['nickname'];
+    return this.repository.getWords(keyword, page, ip, id, nickname);
   }
 
   async loginUser(code: string, state: string, res: Response) {

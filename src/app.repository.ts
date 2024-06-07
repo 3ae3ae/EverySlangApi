@@ -2,7 +2,6 @@ import * as mysql from 'mysql2/promise';
 import { Injectable } from '@nestjs/common';
 import { VoteDto, WordDto } from './app.model';
 import { ConfigService } from '@nestjs/config';
-import { KakaoToken } from './app.model';
 
 @Injectable()
 export class Repository {
@@ -16,16 +15,18 @@ export class Repository {
     });
   }
 
-  async getProfile(id: string) {
+  async getProfile(nickname: string) {
     const connection = await this.pool.getConnection();
     const e = (a) => connection.escape(a);
     const ei = (a) => connection.escapeId(a);
 
     const select = (query: string) => this._select(connection, query);
     try {
-      const result = await select(`SELECT ${ei('like')}, dislike, words
-        FROM profile
-        WHERE member_id = ${e(id)}`);
+      const result = await select(`SELECT ${ei('p.like')}, p.dislike, p.words
+        FROM profile AS p
+        INNER JOIN
+        member as m ON m.member_id = p.member_id
+        WHERE m.nickname = ${e(nickname)}`);
       return result;
     } catch (e) {
       console.error(e);
@@ -42,7 +43,7 @@ export class Repository {
       const result = await select(
         `SELECT nickname FROM member WHERE member_id = ${e(id)}`,
       );
-      return result['nickname'];
+      return result['nickname'] as string;
     } catch (error) {
       console.error(error);
     } finally {
@@ -66,13 +67,17 @@ export class Repository {
         const result = await connection.execute(
           `INSERT INTO words (word, meaning, member_id) VALUES (${e(word)}, ${e(meaning)}, ${e(member_id)})`,
         );
-        const w = await select(
+        const { words } = await select(
           `SELECT words FROM profile WHERE member_id = ${e(member_id)}`,
         );
-        const words = JSON.parse(w['words'])['words'] as string[];
-        const new_words = JSON.stringify({
-          words: [...words, word],
-        });
+        let new_words;
+        if (words !== '') {
+          const wordsArray = (words as string).split('.,.');
+          wordsArray.push(word);
+          new_words = wordsArray.join('.,.');
+        } else {
+          new_words = word;
+        }
         await connection.execute(
           `UPDATE profile SET words = ${e(new_words)} WHERE member_id = ${e(member_id)}`,
         );
@@ -189,7 +194,13 @@ export class Repository {
     }
   }
 
-  async getWords(keyword: string, page: number, ip: string) {
+  async getWords(
+    keyword: string,
+    page: number,
+    ip: string,
+    id: string,
+    nickname: string,
+  ) {
     const connection = await this.pool.getConnection();
     const e = (a) => connection.escape(a);
     try {
@@ -202,6 +213,10 @@ export class Repository {
     COALESCE(i.isLike, -1) as isLike,
     w.word_id,
     w.member_id,
+    CASE
+      WHEN (w.member_id = ${e(id)} OR 'ADMIN' = ${e(nickname)}) THEN 'OK'
+      ELSE 'NO'
+    END as deletable,
     m.nickname
     FROM 
         words AS w
@@ -232,7 +247,10 @@ export class Repository {
     }
   }
 
-  async _select(connection: mysql.PoolConnection, query: string) {
+  async _select(
+    connection: mysql.PoolConnection,
+    query: string,
+  ): Promise<{ [key: string]: number | string | undefined }> {
     const e = (a) => connection.escape(a);
     try {
       const [_result] = await connection.execute(query);
@@ -240,6 +258,23 @@ export class Repository {
       return result;
     } catch (e) {
       console.error(e);
+    }
+  }
+
+  async getMemberID(word_id: number) {
+    const connection = await this.pool.getConnection();
+    const select = (query: string) => this._select(connection, query);
+    const e = (a) => connection.escape(a);
+    try {
+      const { member_id } = await select(
+        `SELECT member_id FROM words WHERE word_id = ${e(word_id)}`,
+      );
+      return member_id;
+    } catch (error) {
+      console.error(error);
+      return 'NULL';
+    } finally {
+      connection.release();
     }
   }
 
@@ -256,15 +291,13 @@ export class Repository {
       const { member_id } = await select(
         `SELECT member_id FROM words WHERE word_id = ${e(word_id)}`,
       );
-      const w = await select(
+      const { words } = await select(
         `SELECT words FROM profile WHERE member_id = ${e(member_id)}`,
       );
-      const words = JSON.parse(w['words'])['words'] as string[];
-
-      const new_words = JSON.stringify({
-        words: words.filter((w) => w !== word),
-      });
-      const { vote } = await select(
+      const new_words = JSON.stringify(
+        (words as string).split('.,.').filter((w) => w !== word),
+      );
+      const vote = await select(
         `SELECT like_amount, dislike_amount FROM vote WHERE word_id = ${e(word_id)}`,
       );
       await connection.execute(
@@ -282,8 +315,10 @@ export class Repository {
       await connection.execute(
         `DELETE FROM words WHERE words.word_id = ${e(word_id)}`,
       );
+      return true;
     } catch (error) {
       console.error(error);
+      return false;
     } finally {
       connection.release();
     }
@@ -311,6 +346,7 @@ export class Repository {
     const connection = await this.pool.getConnection();
     const e = (a) => connection.escape(a);
     try {
+      if (name.toUpperCase() === 'ADMIN') return false;
       const [result] = await connection.execute(
         `SELECT nickname FROM member WHERE nickname = ${e(name)}`,
       );
@@ -334,7 +370,7 @@ export class Repository {
         `INSERT INTO member (member_id) VALUES (${e(id)})`,
       );
       await connection.query(
-        `INSERT INTO profile (member_id, words, ${ei('like')}, ${ei('dislike')}) VALUES (${e(id)}, '{"words": []}', 0, 0)`,
+        `INSERT INTO profile (member_id, words, ${ei('like')}, ${ei('dislike')}) VALUES (${e(id)}, '', 0, 0)`,
       );
       await connection.query('commit');
       return 'OK';
