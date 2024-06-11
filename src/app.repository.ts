@@ -71,7 +71,8 @@ export class Repository {
   }
 
   async createWord(wordDto: WordDto, member_id: string) {
-    const { word, meaning } = wordDto;
+    const { word, meaning, example } = wordDto;
+    const fullExplanation = meaning + '/** every slang spacer*/' + example;
     const connection = await this.pool.getConnection();
     const select = (query: string) => this._select(connection, query);
 
@@ -79,12 +80,12 @@ export class Repository {
     try {
       const rows = await select(`SELECT COUNT(word_id) AS n
       FROM words
-      WHERE word=${e(word)} AND meaning=${e(meaning)}`);
+      WHERE word=${e(word)} AND meaning=${e(fullExplanation)}`);
       const n = rows['n'];
       if (n === 0) {
         await connection.query('start transaction');
         const result = await connection.execute(
-          `INSERT INTO words (word, meaning, member_id) VALUES (${e(word)}, ${e(meaning)}, ${e(member_id)})`,
+          `INSERT INTO words (word, meaning, member_id) VALUES (${e(word)}, ${e(fullExplanation)}, ${e(member_id)})`,
         );
         const { words } = await select(
           `SELECT words FROM profile WHERE member_id = ${e(member_id)}`,

@@ -3,6 +3,7 @@ import { CookieOptions } from 'express';
 export interface WordDto {
   word: string;
   meaning: string;
+  example: string;
   [key: string]: string;
 }
 
