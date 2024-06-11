@@ -27,6 +27,11 @@ export class AppController {
     return 'OK';
   }
 
+  @Get('/disableaccount')
+  async disableAccount(@Req() req: Request, @Res() res: Response) {
+    res.send(await this.appService.disableAccount(req, res));
+  }
+
   @Get('/profile/:nickname')
   async getProfile(@Req() req, @Res() res, @Param('nickname') nickname) {
     if (!nickname) res.redirect('/profile/' + req['nickname']);
@@ -70,6 +75,21 @@ export class AppController {
       return 'error';
     }
     this.appService.loginUser(code, state, res);
+  }
+
+  @Get('/logout')
+  async logout(
+    @Res() res: Response,
+    @Query('code') code,
+    @Query('error') error,
+    @Query('error_description') error_description,
+    @Query('state') state,
+  ) {
+    if (error !== undefined) {
+      return 'error';
+    }
+    await this.appService.logoutUser(code, state, res);
+    res.redirect(this.config.get('REDIRECT_URL'));
   }
 
   @UseGuards(Turnstile, User)

@@ -19,6 +19,13 @@ export class AppService {
     private readonly coo: CookieService,
   ) {}
 
+  async disableAccount(req: Request, res: Response) {
+    const [id, nickname] = [req['id'], req['nickname']];
+    // logout할 때랑 중복
+    this.coo.clearAllCookies(res);
+    return this.repository.disableAccount(id, nickname);
+  }
+
   async checkNickname(name: string) {
     return await this.repository.checkNickname(name);
   }
@@ -73,7 +80,7 @@ export class AppService {
   }
 
   async loginUser(code: string, state: string, res: Response) {
-    const kakaoToken = await this.login.getToken(code, state);
+    const kakaoToken = await this.login.getToken(code, state, 'login');
     const id = await this.login.getUserId(kakaoToken.access_token);
 
     const hashedId = this.jwt.makeHash(id);
@@ -108,21 +115,42 @@ export class AppService {
     };
     this.coo.setCookie(res, [accessTokenCookie, refreshTokenCookie]);
     if (isMember) {
-      const nickname = await this.login.getNickname(hashedId);
-      const nicknameCookie: Cookie = {
-        name: 'nickname',
-        val: nickname,
-        options: {
-          domain: this.config.get('COOKIE_DOMAIN'),
-          httpOnly: true,
-          signed: true,
-        },
-      };
-      this.coo.setCookie(res, [nicknameCookie]);
-      res.redirect(this.config.get('REDIRECT_URL'));
+      const isDisable = await this.login.isDisabled(hashedId);
+      if (isDisable)
+        res.redirect(this.config.get('REDIRECT_URL') + '/forbidden.html');
+      else {
+        const nickname = await this.login.getNickname(hashedId);
+        const nicknameCookie: Cookie = {
+          name: 'nickname',
+          val: nickname,
+          options: {
+            domain: this.config.get('COOKIE_DOMAIN'),
+            httpOnly: true,
+            signed: true,
+          },
+        };
+        this.coo.setCookie(res, [nicknameCookie]);
+        res.redirect(this.config.get('REDIRECT_URL'));
+      }
     } else {
       this.login.registerMember(hashedId);
       res.redirect(this.config.get('REDIRECT_URL') + '/nickname.html');
+    }
+  }
+
+  async logoutUser(code: string, state: string, res: Response) {
+    try {
+      const kakaoToken = await this.login.getToken(code, state, 'logout');
+      const access_token = kakaoToken.access_token;
+      await this.httpservice.post('https://kapi.kakao.com/v1/user/logout', '', {
+        headers: {
+          Authorization: `Bearer ${access_token}`,
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+      });
+      this.coo.clearAllCookies(res);
+    } catch (error) {
+      console.error(error);
     }
   }
 }

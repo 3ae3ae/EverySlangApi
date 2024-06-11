@@ -6,10 +6,12 @@ import { CookieService } from './app.cookie';
 @Injectable()
 export class LoggerMiddleware implements NestMiddleware {
   use(req: Request, res: Response, next: NextFunction) {
-    const r = req.body;
-    for (const e of Object.entries(r)) {
-      // console.log(e[0], ':', e[1]);
-    }
+    // const r = req.body;
+    // console.log('req: ');
+    // for (const e of Object.entries(r)) {
+    //   console.log(e[0], ':', e[1]);
+    // }
+    // console.log('');
     next();
   }
 }

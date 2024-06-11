@@ -16,4 +16,18 @@ export class CookieService {
   getCookie(req: Request) {
     return { ...req.cookies, ...req.signedCookies };
   }
+
+  clearAllCookies(res: Response) {
+    const c = ['nickname', 'refreshToken', 'accessToken'].map((c) => ({
+      name: c,
+      val: '',
+      options: {
+        domain: this.config.get('COOKIE_DOMAIN'),
+        maxAge: 1,
+        httpOnly: true,
+        signed: true,
+      },
+    }));
+    this.setCookie(res, c);
+  }
 }

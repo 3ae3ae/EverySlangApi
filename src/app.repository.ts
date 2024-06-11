@@ -15,6 +15,25 @@ export class Repository {
     });
   }
 
+  async disableAccount(id: string, nickname: string) {
+    const connection = await this.pool.getConnection();
+    const e = (a) => connection.escape(a);
+    const due_date = Date.now() + 24 * 7 * 3600 * 1000;
+    const select = (query: string) => this._select(connection, query);
+    try {
+      await connection.query('start transaction');
+      await connection.execute(
+        `UPDATE member SET is_disable=1, due_date=${e(due_date)}`,
+      );
+      return 'OK';
+    } catch (error) {
+      await connection.query('rollback');
+      return 'FAIL';
+    } finally {
+      connection.release();
+    }
+  }
+
   async getProfile(nickname: string) {
     const connection = await this.pool.getConnection();
     const e = (a) => connection.escape(a);
@@ -339,6 +358,32 @@ export class Repository {
       return false;
     } finally {
       await connection.release();
+    }
+  }
+
+  async isDisabled(id: string) {
+    const connection = await this.pool.getConnection();
+    const e = (a) => connection.escape(a);
+    const select = (query: string) => this._select(connection, query);
+    try {
+      const now = Date.now();
+      const result = await select(
+        `SELECT is_disable, due_date FROM member WHERE member_id=${e(id)}`,
+      );
+      if (result['is_disable']) {
+        if ((result['due_date'] as number) > now) return true;
+        else {
+          await connection.execute(
+            `UPDATE member SET is_disable=0, due_date=0 WHERE member_id=${e(id)}`,
+          );
+          return false;
+        }
+      }
+    } catch (error) {
+      console.error(error);
+      return false;
+    } finally {
+      connection.release();
     }
   }
 
