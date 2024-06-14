@@ -8,7 +8,7 @@ import { LogIn } from './app.login';
 import { JwtModule } from '@nestjs/jwt';
 import { CustomJwt } from './app.jwt';
 import { CookieService } from './app.cookie';
-import { LoggerMiddleware, InjectIDMiddleware } from './app.middleware';
+import { InjectIDMiddleware } from './app.middleware';
 
 @Module({
   imports: [
@@ -23,6 +23,6 @@ import { LoggerMiddleware, InjectIDMiddleware } from './app.middleware';
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(LoggerMiddleware, InjectIDMiddleware).forRoutes('*');
+    consumer.apply(InjectIDMiddleware).forRoutes('*');
   }
 }

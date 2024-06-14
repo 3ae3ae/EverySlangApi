@@ -4,19 +4,6 @@ import { CustomJwt } from './app.jwt';
 import { CookieService } from './app.cookie';
 
 @Injectable()
-export class LoggerMiddleware implements NestMiddleware {
-  use(req: Request, res: Response, next: NextFunction) {
-    // const r = req.body;
-    // console.log('req: ');
-    // for (const e of Object.entries(r)) {
-    //   console.log(e[0], ':', e[1]);
-    // }
-    // console.log('');
-    next();
-  }
-}
-
-@Injectable()
 export class InjectIDMiddleware implements NestMiddleware {
   constructor(private readonly jwt: CustomJwt) {}
   async use(req: Request, res: Response, next: NextFunction) {

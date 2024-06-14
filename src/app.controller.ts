@@ -71,7 +71,7 @@ export class AppController {
     @Query('error_description') error_description,
     @Query('state') state,
   ) {
-    if (error !== undefined) {
+    if (error !== undefined || !code) {
       return 'error';
     }
     this.appService.loginUser(code, state, res);
@@ -85,7 +85,7 @@ export class AppController {
     @Query('error_description') error_description,
     @Query('state') state,
   ) {
-    if (error !== undefined) {
+    if (error !== undefined || !code) {
       return 'error';
     }
     await this.appService.logoutUser(code, state, res);
