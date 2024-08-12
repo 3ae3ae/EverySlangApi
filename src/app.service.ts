@@ -50,6 +50,7 @@ export class AppService {
       val: name,
       options: {
         domain: this.config.get('COOKIE_DOMAIN'),
+        maxAge: 1000 * 60 * 60 * 1 - 10,
         httpOnly: true,
         signed: true,
       },
