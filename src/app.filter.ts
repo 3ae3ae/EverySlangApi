@@ -18,10 +18,10 @@ export class ExceptionsFilter implements ExceptionFilter {
       exception instanceof HttpException ? exception.getStatus() : 500;
 
     console.error(JSON.stringify(exception));
-
-    response.status(status).json({
-      statusCode: status,
-      path: request.url,
-    });
+    if (!response.headersSent)
+      response.status(status).json({
+        statusCode: status,
+        path: request.url,
+      });
   }
 }
