@@ -87,11 +87,12 @@ export class Repository {
         const result = await connection.execute(
           `INSERT INTO words (word, meaning, member_id) VALUES (${e(word)}, ${e(fullExplanation)}, ${e(member_id)})`,
         );
-        const { words } = await select(
+        const temp = await select(
           `SELECT words FROM profile WHERE member_id = ${e(member_id)}`,
         );
+        const words = temp['words'] || '';
         let new_words;
-        if (words !== '') {
+        if (temp['words'] != undefined) {
           const wordsArray = (words as string).split('.,.');
           wordsArray.push(word);
           new_words = wordsArray.join('.,.');
