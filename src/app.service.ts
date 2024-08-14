@@ -139,16 +139,8 @@ export class AppService {
     }
   }
 
-  async logoutUser(code: string, state: string, res: Response) {
+  async logoutUser(res: Response) {
     try {
-      const kakaoToken = await this.login.getToken(code, state, 'logout');
-      const access_token = kakaoToken.access_token;
-      await this.httpservice.post('https://kapi.kakao.com/v1/user/logout', '', {
-        headers: {
-          Authorization: `Bearer ${access_token}`,
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-      });
       this.coo.clearAllCookies(res);
     } catch (error) {
       console.error(error);

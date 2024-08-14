@@ -78,17 +78,8 @@ export class AppController {
   }
 
   @Get('/logout')
-  async logout(
-    @Res() res: Response,
-    @Query('code') code,
-    @Query('error') error,
-    @Query('error_description') error_description,
-    @Query('state') state,
-  ) {
-    if (error !== undefined || !code) {
-      return 'error';
-    }
-    await this.appService.logoutUser(code, state, res);
+  async logout(@Res() res: Response) {
+    await this.appService.logoutUser(res);
     res.redirect(this.config.get('REDIRECT_URL'));
   }
 
