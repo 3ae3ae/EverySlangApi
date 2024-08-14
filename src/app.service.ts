@@ -35,11 +35,11 @@ export class AppService {
   }
 
   async removeWord(word_id: number, req: Request) {
+    if (req['nickname'] === 'ADMIN')
+      return await this.repository.removeWord(word_id);
     const member_id = await this.repository.getMemberID(word_id);
-    console.log('1');
     if (member_id === 'NULL') return false;
     if (member_id !== req['id']) return false;
-    console.log(2);
     return await this.repository.removeWord(word_id);
   }
 
