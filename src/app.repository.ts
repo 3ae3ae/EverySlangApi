@@ -23,7 +23,7 @@ export class Repository {
     try {
       await connection.query('start transaction');
       await connection.execute(
-        `UPDATE member SET is_disable=1, due_date=${e(due_date)}`,
+        `UPDATE member SET is_disable=1, due_date=${e(due_date)} WHERE member_id=${e(id)}`,
       );
       return 'OK';
     } catch (error) {
