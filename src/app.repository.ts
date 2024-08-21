@@ -315,9 +315,11 @@ export class Repository {
       const { words } = await select(
         `SELECT words FROM profile WHERE member_id = ${e(member_id)}`,
       );
-      const new_words = JSON.stringify(
-        (words as string).split('.,.').filter((w) => w !== word),
-      );
+      const new_words = (words as string)
+        .split('.,.')
+        .filter((w) => w !== word)
+        .join('.,.');
+
       const vote = await select(
         `SELECT like_amount, dislike_amount FROM vote WHERE word_id = ${e(word_id)}`,
       );
